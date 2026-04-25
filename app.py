@@ -10,12 +10,11 @@ import csv
 import io
 from functools import wraps
 
-# ИСПРАВЛЕНИЕ 1: __name__ вместо name
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'financial-reid-secret-key-2024-change-in-production'
+app.config['SECRET_KEY'] = '840392751093847562910384756291038475629103847562917'
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-
+print("🔑 [CONFIG] SECRET_KEY configured successfully")
 db = SQLAlchemy(app)
 
 # ==================== НАСТРОЙКИ БЕЗОПАСНОСТИ ====================
@@ -104,43 +103,68 @@ def index():
 # Быстрый старт по никнейму
 @app.route('/quick_start', methods=['POST'])
 def quick_start():
-    username = request.form.get('username', '').strip()
-    
-    if not username or len(username) < 3:
-        flash('Никнейм должен содержать минимум 3 символа', 'error')
-        return redirect(url_for('index'))
-    
-    # 1. Проверка на зарезервированные имена (защита от создания "admin")
-    if username.lower() in RESERVED_NAMES:
-        flash('Это имя занято (системное имя). Пожалуйста, выберите другое.', 'error')
-        return redirect(url_for('index'))
-    
-    # 2. Ищем пользователя в базе
-    user = User.query.filter_by(username=username).first()
-    
-    if user:
-        # Если пользователь существует, проверяем, не админ ли это
-        if user.is_admin:
-            flash('Вход под этим именем через быстрый старт запрещен. Используйте пароль.', 'error')
+    try:
+        print("🔍 [DEBUG] quick_start called")
+        
+        username = request.form.get('username', '').strip()
+        print(f"🔍 [DEBUG] username received: '{username}'")
+        
+        if not username or len(username) < 3:
+            flash('Никнейм должен содержать минимум 3 символа', 'error')
+            print("❌ [ERROR] Username too short")
             return redirect(url_for('index'))
         
-        # Если обычный пользователь — просто входим в систему
+        # Проверка на зарезервированные имена
+        if username.lower() in RESERVED_NAMES:
+            flash('Это имя занято (системное имя). Пожалуйста, выберите другое.', 'error')
+            print(f"❌ [ERROR] Reserved name: {username}")
+            return redirect(url_for('index'))
+        
+        # Ищем пользователя в базе
+        print("🔍 [DEBUG] Searching for user in database...")
+        user = User.query.filter_by(username=username).first()
+        
+        if user:
+            print(f"✅ [DEBUG] User found: {user.username}, is_admin: {user.is_admin}")
+            # Если пользователь существует, проверяем, не админ ли это
+            if user.is_admin:
+                flash('Вход под этим именем через быстрый старт запрещен. Используйте пароль.', 'error')
+                return redirect(url_for('index'))
+            
+            # Если обычный пользователь — просто входим в систему
+            session['user_id'] = user.id
+            session['username'] = user.username
+            print(f"✅ [DEBUG] User logged in: {user.username}")
+            flash(f'С возвращением, {user.username}!', 'success')
+            return redirect(url_for('dashboard'))
+        
+        # Если пользователя нет — создаем нового
+        print(f"🔍 [DEBUG] Creating new user: {username}")
+        user = User(username=username, email=None, group=None)
+        
+        # Генерируем пароль
+        temp_password = 'temp_' + secrets.token_urlsafe(16)
+        print(f"🔍 [DEBUG] Setting password...")
+        user.set_password(temp_password)
+        
+        print("🔍 [DEBUG] Adding to database...")
+        db.session.add(user)
+        db.session.commit()
+        print(f"✅ [DEBUG] User created with ID: {user.id}")
+        
         session['user_id'] = user.id
         session['username'] = user.username
-        flash(f'С возвращением, {user.username}!', 'success')
+        
+        flash(f'Добро пожаловать, {user.username}!', 'success')
+        print(f"✅ [DEBUG] Redirecting to dashboard...")
         return redirect(url_for('dashboard'))
-    
-    # 3. Если пользователя нет — создаем нового
-    user = User(username=username, email=None, group=None)
-    user.set_password('temp_' + secrets.token_urlsafe(16))
-    db.session.add(user)
-    db.session.commit()
-    
-    session['user_id'] = user.id
-    session['username'] = user.username
-    
-    flash(f'Добро пожаловать, {user.username}!', 'success')
-    return redirect(url_for('dashboard'))
+        
+    except Exception as e:
+        print(f"❌ [CRITICAL ERROR] in quick_start: {str(e)}")
+        import traceback
+        print(traceback.format_exc())
+        flash('Произошла ошибка при входе. Попробуйте позже.', 'error')
+        return redirect(url_for('index'))
 
 # Страница входа для админа
 @app.route('/admin_login')
@@ -1328,11 +1352,19 @@ def reset_station(user, station_num):
     return redirect(url_for('station'))  # Важно: redirect на /station, не на /station/{num}
 
 # ==================== ЗАПУСК ПРИЛОЖЕНИЯ ====================
-# ИСПРАВЛЕНИЕ 4: __name__ вместо name
 if __name__ == '__main__':
     with app.app_context():
+        print("🗄️ [INIT] Creating database tables...")
         db.create_all()
+        print("✅ [INIT] Database tables created")
+        
+        print("🔐 [INIT] Initializing admin account...")
         init_admin_account()
+        print("✅ [INIT] Admin account initialized")
+    
     import os
     port = int(os.environ.get('PORT', 5000))
-    app.run(debug=False, host='0.0.0.0', port=port)
+    
+    debug_mode = os.environ.get('FLASK_DEBUG', '0') == '1'
+    print(f"🚀 [START] Starting server on port {port}, debug={debug_mode}")
+    app.run(debug=debug_mode, host='0.0.0.0', port=port)
