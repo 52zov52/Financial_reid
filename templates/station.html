@@ -1,0 +1,372 @@
+{% extends "base.html" %}
+
+{% block title %}Станция {{ station_num }} - {{ station.title }}{% endblock %}
+
+{% block content %}
+<style>
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    10%, 30%, 50%, 70%, 90% { transform: translateX(-8px); }
+    20%, 40%, 60%, 80% { transform: translateX(8px); }
+}
+
+.shake-animation {
+    animation: shake 0.5s ease-in-out;
+}
+
+.error-select {
+    border-color: #e94560 !important;
+    box-shadow: 0 0 0 3px rgba(233, 69, 96, 0.3) !important;
+    background: rgba(233, 69, 96, 0.1) !important;
+}
+
+.budgetSlider {
+    width: 100%;
+    margin: 10px 0;
+    cursor: pointer;
+}
+
+.fieldValue {
+    font-weight: bold;
+    color: #00d9ff;
+}
+
+.creditOption, .quizOption, .scammerOption {
+    width: 18px;
+    height: 18px;
+    accent-color: #00d9ff;
+}
+
+.definitionSelect {
+    width: 100%;
+    padding: 12px;
+    border: 2px solid #0f3460;
+    border-radius: 8px;
+    background: #1a1a2e;
+    color: white;
+    font-size: 14px;
+    transition: all 0.3s;
+}
+
+.definitionSelect:focus {
+    outline: none;
+    border-color: #00d9ff;
+}
+</style>
+
+<div class="card" style="max-width: 900px; margin: 0 auto; padding: 40px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px;">
+        <h1 style="color: #00d9ff; font-size: 32px; margin: 0;">Станция {{ station_num }}: {{ station.title }}</h1>
+    </div>
+    
+    <div style="background: #0f3460; padding: 20px; border-radius: 10px; margin-bottom: 30px;">
+        <div style="display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 14px; color: #aaa;">
+            <span>Прогресс игры</span>
+            <span>{{ station_num }}/6 станций</span>
+        </div>
+        <div style="background: #1a1a2e; height: 12px; border-radius: 6px; overflow: hidden;">
+            <div style="background: linear-gradient(90deg, #00d9ff, #00b8d4); height: 100%; border-radius: 6px; width: {{ (station_num / 6) * 100 }}%; transition: width 0.4s ease;"></div>
+        </div>
+    </div>
+    
+    <div style="background: #0f3460; padding: 20px; border-radius: 10px; margin-bottom: 30px; border-left: 4px solid #00d9ff;">
+        <p style="margin: 0; font-size: 16px; line-height: 1.6;">{{ station.description }}</p>
+    </div>
+    
+    <form method="POST" id="stationForm">
+        
+        {% if station.type == 'budget' %}
+            <div id="remainingBox" style="background: linear-gradient(135deg, #00b894, #00cec9); color: white; padding: 20px; border-radius: 10px; margin-bottom: 30px; text-align: center;">
+                <div style="font-size: 14px; margin-bottom: 5px; opacity: 0.9;">Осталось распределить:</div>
+                <div id="remainingAmount" style="font-size: 48px; font-weight: bold;">8000</div>
+                <div style="font-size: 14px; margin-top: 5px; opacity: 0.9;">ИК из 8000</div>
+            </div>
+            
+            <div style="display: grid; gap: 20px;">
+                {% for field in station.fields %}
+                <div style="background: #0f3460; padding: 20px; border-radius: 10px; border-left: 4px solid {% if field.label == 'Сбережения' %}#00b894{% else %}#00d9ff{% endif %};">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                        <label style="font-weight: 600; color: #00d9ff; margin: 0; font-size: 16px;">{{ field.label }}</label>
+                        <div style="background: #1a1a2e; padding: 8px 20px; border-radius: 20px; font-weight: bold; color: #00d9ff; min-width: 100px; text-align: center;">
+                            <span class="fieldValue" data-field="{{ field.name }}">0</span> ИК
+                        </div>
+                    </div>
+                    <input type="range" class="budgetSlider" name="{{ field.name }}" min="0" max="8000" value="0" step="100" data-field="{{ field.name }}">
+                    {% if field.label == 'Сбережения' %}
+                    <div style="background: rgba(0,184,148,0.1); padding: 10px; border-radius: 5px; margin-top: 10px; font-size: 13px; color: #00b894;">Минимум 800 ИК (10% от дохода)</div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+            
+            <div id="successMessage" style="display: none; background: linear-gradient(135deg, #00b894, #00cec9); color: white; padding: 20px; border-radius: 10px; margin-top: 20px; text-align: center;">
+                <div style="font-size: 18px; font-weight: bold;">Отлично! Бюджет составлен верно!</div>
+            </div>
+        
+        {% elif station.type == 'choice_multiple' %}
+            {% if current_question %}
+            <div style="background: #0f3460; padding: 20px; border-radius: 10px; margin-bottom: 20px;">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 15px;">
+                    <span style="color: #00d9ff; font-weight: bold;">Вопрос {{ question_index + 1 }} из 6</span>
+                    <span style="color: #fdcb6e; font-weight: bold;">Выберите все подходящие варианты</span>
+                </div>
+                <p style="font-size: 18px; margin-bottom: 25px;">{{ current_question.text }}</p>
+                <div style="display: flex; flex-direction: column; gap: 12px;">
+                    {% for option in current_question.options %}
+                    <label style="background: #1a1a2e; padding: 15px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; gap: 12px;">
+                        <input type="checkbox" name="answer" value="{{ option }}" class="creditOption">
+                        <span style="font-size: 15px;">{{ option }}</span>
+                    </label>
+                    {% endfor %}
+                </div>
+            </div>
+            <div id="selectionInfo" style="background: #1a1a2e; padding: 15px; border-radius: 8px; text-align: center;">
+                Выбрано: <span id="selectedCount" style="color: #00d9ff; font-weight: bold;">0</span>
+            </div>
+            {% endif %}
+        
+        {% elif station.type == 'quiz' %}
+            {% if current_round and current_question %}
+            <div style="background: #0f3460; padding: 20px; border-radius: 10px; margin-bottom: 20px;">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 15px;">
+                    <span style="color: #00d9ff; font-weight: bold;">{{ current_round.name }}</span>
+                    <span style="color: #fdcb6e; font-weight: bold;">Вопрос {{ current_question.id }} из {{ current_round.questions | length }}</span>
+                </div>
+                <p style="font-size: 18px; margin-bottom: 25px;">{{ current_question.text }}</p>
+                {% if current_round.id == 3 %}
+                    <div style="background: #1a1a2e; padding: 20px; border-radius: 10px; margin-bottom: 20px;">
+                        <div style="text-align: center; margin-bottom: 20px;">
+                            {% if current_question.image %}
+                            <img src="{{ url_for('static', filename=current_question.image) }}" alt="Ребус {{ current_question.id }}" style="max-width: 100%; height: auto; border-radius: 10px; border: 2px solid #00d9ff;">
+                            {% else %}
+                            <div style="background: #0f3460; padding: 40px; border-radius: 10px; color: #aaa;">Изображение ребуса загружается...</div>
+                            {% endif %}
+                        </div>
+                        <div style="text-align: center; margin-bottom: 20px;">
+                            <div style="font-size: 14px; color: #aaa; margin-bottom: 10px;">Подсказка: {{ current_question.hint }}</div>
+                        </div>
+                        <div>
+                            <label style="display: block; margin-bottom: 10px; font-weight: 500; color: #00d9ff;">Ваш ответ:</label>
+                            <input type="text" name="answer" id="rebusAnswer" placeholder="Введите ваш ответ..." required style="background: #0f3460; border: 2px solid #00d9ff; border-radius: 8px; padding: 12px; font-size: 16px; width: 100%; color: white;">
+                        </div>
+                    </div>
+                {% else %}
+                    <div style="display: flex; flex-direction: column; gap: 12px;">
+                        {% for option in current_question.options %}
+                        <label style="background: #1a1a2e; padding: 15px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; gap: 12px;">
+                            <input type="radio" name="answer" value="{{ option }}" class="quizOption" required>
+                            <span style="font-size: 15px;">{{ option }}</span>
+                        </label>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+            {% endif %}
+        
+        {% elif station.type == 'scammer_quiz' %}
+            {% if current_question %}
+            <div style="background: #0f3460; padding: 20px; border-radius: 10px; margin-bottom: 20px;">
+                <p style="font-size: 18px; margin-bottom: 25px;">{{ current_question.text }}</p>
+                <div style="display: flex; flex-direction: column; gap: 12px;">
+                    {% for option in current_question.options %}
+                    <label style="background: #1a1a2e; padding: 15px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; gap: 12px;">
+                        <input type="radio" name="answer" value="{{ option }}" class="scammerOption" required>
+                        <span style="font-size: 15px;">{{ option }}</span>
+                    </label>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+        
+        {% elif station.type == 'matching_puzzle' %}
+            <div id="puzzleContainer" style="background: #0f3460; padding: 25px; border-radius: 10px; margin-bottom: 20px;">
+                <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 20px;">
+                    {% for term in station.terms %}
+                    <div style="background: linear-gradient(135deg, #00d9ff, #00b8d4); color: #1a1a2e; padding: 12px; border-radius: 8px; font-weight: bold; text-align: center;">{{ term.name }}</div>
+                    <select name="term_{{ term.id }}" 
+                            class="definitionSelect" 
+                            data-term="{{ term.id }}"
+                            data-correct-definition="{{ term.correct_definition }}"
+                            required>
+                        <option value="">-- Выберите определение --</option>
+                        {% for definition in shuffled_definitions %}
+                        <option value="{{ definition }}">{{ definition }}</option>
+                        {% endfor %}
+                    </select>
+                    {% endfor %}
+                </div>
+            </div>
+        
+        {% elif station.type == 'text' %}
+            <div style="background: #0f3460; padding: 25px; border-radius: 15px;">
+                {% for i in range(11) %}
+                <div style="background: #1a1a2e; padding: 20px; border-radius: 10px; margin-bottom: 20px;">
+                    <label style="display: block; margin-bottom: 10px; color: #eee; font-weight: 500;">Вопрос {{ i + 1 }}: {{ station.questions[i].text }}</label>
+                    <textarea name="question_{{ i }}" rows="3" required style="width: 100%; padding: 12px; border: 2px solid #0f3460; border-radius: 8px; background: #1a1a2e; color: white; font-size: 14px; resize: vertical;"></textarea>
+                </div>
+                {% endfor %}
+                
+                <div style="background: #1a1a2e; padding: 20px; border-radius: 10px; margin-bottom: 20px;">
+                    <label style="display: block; margin-bottom: 15px; color: #eee; font-weight: 500;">Вопрос 12: {{ station.questions[11].text }}</label>
+                    {% for option in station.questions[11].options %}
+                    <label style="display: flex; align-items: center; padding: 15px 20px; margin-bottom: 10px; background: #0f3460; border-radius: 8px; cursor: pointer;">
+                        <input type="radio" name="question_11" value="{{ option }}" required style="margin-right: 15px; accent-color: #00d9ff; flex-shrink: 0; width: 20px; height: 20px;">
+                        <span style="flex: 1; line-height: 1.4;">{{ option }}</span>
+                    </label>
+                    {% endfor %}
+                </div>
+            </div>
+        {% endif %}
+        
+        <button type="submit" id="submitBtn" class="btn btn-primary btn-block" 
+                style="margin-top: 30px; font-size: 18px; padding: 15px; font-weight: 600; width: 100%;"
+                {% if station.type == 'budget' %}disabled style="opacity: 0.6; cursor: not-allowed;"{% endif %}>
+            {% if station_num < 6 %}
+            Ответить и перейти к следующей станции
+            {% else %}
+            Завершить игру и увидеть результаты
+            {% endif %}
+        </button>
+    </form>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    var stationType = "{{ station.type }}";
+    var submitBtn = document.getElementById('submitBtn');
+    
+    // Проверка flash сообщений об ошибках для Станции 5
+    {% if station.type == 'matching_puzzle' %}
+    var flashError = document.querySelector('.flash-error');
+    if (flashError) {
+        var puzzleContainer = document.getElementById('puzzleContainer');
+        var selects = document.querySelectorAll('.definitionSelect');
+        
+        // Добавляем анимацию тряски
+        puzzleContainer.classList.add('shake-animation');
+        
+        // Подсвечиваем неправильные ответы
+        selects.forEach(function(select) {
+            if (select.value && select.value !== '-- Выберите определение --') {
+                var correctDef = select.dataset.correctDefinition;
+                if (select.value !== correctDef) {
+                    select.classList.add('error-select');
+                }
+            }
+        });
+        
+        // Убираем анимацию через 0.5 секунды
+        setTimeout(function() {
+            puzzleContainer.classList.remove('shake-animation');
+        }, 500);
+    }
+    {% endif %}
+    
+    // Станция 1: Бюджет
+    if (stationType === 'budget') {
+        var sliders = document.querySelectorAll('.budgetSlider');
+        var remainingAmount = document.getElementById('remainingAmount');
+        var successMessage = document.getElementById('successMessage');
+        var MAX_INCOME = 8000;
+        var MIN_SAVINGS = 800;
+        
+        function updateBudget() {
+            var total = 0;
+            var savings = 0;
+            
+            sliders.forEach(function(slider) {
+                var value = parseInt(slider.value) || 0;
+                total += value;
+                var display = slider.parentElement.querySelector('.fieldValue');
+                if (display) display.textContent = value;
+                if (slider.dataset.field === 'savings') savings = value;
+            });
+            
+            var remaining = MAX_INCOME - total;
+            remainingAmount.textContent = remaining;
+            
+            var allDistributed = total === MAX_INCOME;
+            var hasMinSavings = savings >= MIN_SAVINGS;
+            
+            if (allDistributed && hasMinSavings) {
+                successMessage.style.display = 'block';
+                submitBtn.disabled = false;
+                submitBtn.style.opacity = '1';
+                submitBtn.style.cursor = 'pointer';
+            } else {
+                successMessage.style.display = 'none';
+                submitBtn.disabled = true;
+                submitBtn.style.opacity = '0.6';
+                submitBtn.style.cursor = 'not-allowed';
+            }
+        }
+        
+        sliders.forEach(function(slider) {
+            slider.addEventListener('input', updateBudget);
+        });
+        updateBudget();
+    }
+    
+    // Станция 2: Кредиты (без лимита на количество вариантов)
+    else if (stationType === 'choice_multiple') {
+        var checkboxes = document.querySelectorAll('.creditOption');
+        var selectedCount = document.getElementById('selectedCount');
+        
+        function updateButtonState() {
+            var checked = document.querySelectorAll('.creditOption:checked').length;
+            if (selectedCount) selectedCount.textContent = checked;
+            
+            // Кнопка активна, если выбран хотя бы 1 вариант
+            if (submitBtn) {
+                submitBtn.disabled = (checked === 0);
+                submitBtn.style.opacity = (checked > 0) ? '1' : '0.6';
+                submitBtn.style.cursor = (checked > 0) ? 'pointer' : 'not-allowed';
+            }
+        }
+        
+        checkboxes.forEach(function(checkbox) {
+            checkbox.addEventListener('change', updateButtonState);
+        });
+        
+        // Применяем состояние при загрузке
+        updateButtonState();
+    }
+    
+    // Станция 3: Квиз
+    else if (stationType === 'quiz') {
+        var inputs = document.querySelectorAll('input[name="answer"], #rebusAnswer');
+        inputs.forEach(function(input) {
+            input.addEventListener('change', function() {
+                submitBtn.disabled = false;
+                submitBtn.style.opacity = '1';
+                submitBtn.style.cursor = 'pointer';
+            });
+            input.addEventListener('input', function() {
+                submitBtn.disabled = false;
+                submitBtn.style.opacity = '1';
+                submitBtn.style.cursor = 'pointer';
+            });
+        });
+    }
+    
+    // Станция 4: Мошенники
+    else if (stationType === 'scammer_quiz') {
+        var radios = document.querySelectorAll('.scammerOption');
+        radios.forEach(function(radio) {
+            radio.addEventListener('change', function() {
+                submitBtn.disabled = false;
+                submitBtn.style.opacity = '1';
+                submitBtn.style.cursor = 'pointer';
+            });
+        });
+    }
+    
+    // Станция 6: Текстовые вопросы
+    else if (stationType === 'text') {
+        submitBtn.disabled = false;
+        submitBtn.style.opacity = '1';
+        submitBtn.style.cursor = 'pointer';
+    }
+});
+</script>
+{% endblock %}

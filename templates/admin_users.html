@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% block title %}Пользователи{% endblock %}
+{% block content %}
+<div class="card" style="max-width: 1400px; margin: 0 auto; padding: 40px;">
+    <h1 style="color: #00d9ff; margin-bottom: 30px; display: flex; align-items: center; gap: 12px;">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width: 32px; height: 32px;">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/>
+        </svg>
+        Управление пользователями
+    </h1>
+    
+    <div class="table-container" style="overflow-x: auto;">
+        <table style="width: 100%; border-collapse: collapse;">
+            <thead>
+                <tr style="background: #0f3460;">
+                    <th style="padding: 15px; text-align: left; color: #00d9ff;">ID</th>
+                    <th style="padding: 15px; text-align: left; color: #00d9ff;">Имя</th>
+                    <th style="padding: 15px; text-align: left; color: #00d9ff;">Группа</th>
+                    <th style="padding: 15px; text-align: left; color: #00d9ff;">Станция</th>
+                    <th style="padding: 15px; text-align: left; color: #00d9ff;">Статус</th>
+                    <th style="padding: 15px; text-align: left; color: #00d9ff;">Действия</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for u in users %}
+                <tr style="border-bottom: 1px solid #0f3460;">
+                    <td style="padding: 15px;">{{ u.id }}</td>
+                    <td style="padding: 15px;">
+                        {{ u.username }}
+                        {% if u.is_banned %}
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width: 16px; height: 16px; color: #e94560; vertical-align: middle; margin-left: 5px;">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+                        </svg>
+                        {% endif %}
+                        {% if u.is_admin %}
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 24 24" style="width: 16px; height: 16px; color: #fdcb6e; vertical-align: middle; margin-left: 5px;">
+                            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                        </svg>
+                        {% endif %}
+                    </td>
+                    <td style="padding: 15px;">{{ u.group or '-' }}</td>
+                    <td style="padding: 15px;">{{ u.current_station }}/6</td>
+                    <td style="padding: 15px;">
+                        {% if u.is_finished %}
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width: 18px; height: 18px; color: #00b894; vertical-align: middle;">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                        {% else %}
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width: 18px; height: 18px; color: #fdcb6e; vertical-align: middle;">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                        {% endif %}
+                    </td>
+                    <td style="padding: 15px;">
+                        <a href="{{ url_for('admin_user_detail', user_id=u.id) }}" style="color: #00d9ff; text-decoration: none; margin-right: 10px; display: inline-flex; align-items: center; gap: 5px;">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width: 16px; height: 16px;">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                            </svg>
+                            Просмотр
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <div style="text-align: center; margin-top: 30px;">
+        <a href="{{ url_for('admin') }}" style="color: #00d9ff; text-decoration: none; display: inline-flex; align-items: center; gap: 8px;">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width: 18px; height: 18px;">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+            </svg>
+            Назад в админ-панель
+        </a>
+    </div>
+</div>
+{% endblock %}

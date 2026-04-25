@@ -1,0 +1,196 @@
+{% extends "base.html" %}
+{% block title %}{{ target_user.username }}{% endblock %}
+{% block content %}
+<div class="card" style="max-width: 1200px; margin: 0 auto; padding: 40px;">
+    <h1 style="color: #00d9ff; margin-bottom: 30px; display: flex; align-items: center; gap: 12px;">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width: 32px; height: 32px;">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+        </svg>
+        {{ target_user.username }}
+    </h1>
+
+    <!-- Информация о пользователе -->
+    <div style="background: #0f3460; padding: 25px; border-radius: 15px; margin-bottom: 30px;">
+        <h3 style="color: #00d9ff; margin-bottom: 20px; display: flex; align-items: center; gap: 10px;">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width: 24px; height: 24px;">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            Информация
+        </h3>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px;">
+            <p style="color: #aaa;">ID: <span style="color: white;">{{ target_user.id }}</span></p>
+            <p style="color: #aaa;">Email: <span style="color: white;">{{ target_user.email or 'Не указан' }}</span></p>
+            <p style="color: #aaa;">Группа: <span style="color: white;">{{ target_user.group or 'Не указана' }}</span></p>
+            <p style="color: #aaa;">Текущая станция: <span style="color: #00d9ff;">{{ target_user.current_station }}/6</span></p>
+            <p style="color: #aaa;">Статус: 
+                <span style="color: {% if target_user.is_finished %}#00b894{% else %}#fdcb6e{% endif %}; display: inline-flex; align-items: center; gap: 5px;">
+                    {% if target_user.is_finished %}
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width: 16px; height: 16px;">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    Завершено
+                    {% else %}
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width: 16px; height: 16px;">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    В процессе
+                    {% endif %}
+                </span>
+            </p>
+            <p style="color: #aaa;">Заблокирован: 
+                <span style="color: {% if target_user.is_banned %}#e94560{% else %}#00b894{% endif %}; display: inline-flex; align-items: center; gap: 5px;">
+                    {% if target_user.is_banned %}
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width: 16px; height: 16px;">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+                    </svg>
+                    Да
+                    {% else %}
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width: 16px; height: 16px;">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    Нет
+                    {% endif %}
+                </span>
+            </p>
+            {% if target_user.ban_reason %}
+            <p style="color: #aaa;">Причина: <span style="color: #e94560;">{{ target_user.ban_reason }}</span></p>
+            {% endif %}
+            <p style="color: #aaa;">Зарегистрирован: <span style="color: white;">{{ target_user.created_at.strftime('%d.%m.%Y') if target_user.created_at else '-' }}</span></p>
+        </div>
+    </div>
+
+    <!-- Прогресс по станциям -->
+    <div style="background: #0f3460; padding: 25px; border-radius: 15px; margin-bottom: 30px;">
+        <h3 style="color: #00d9ff; margin-bottom: 20px; display: flex; align-items: center; gap: 10px;">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width: 24px; height: 24px;">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+            </svg>
+            Прогресс по станциям
+        </h3>
+        
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 15px;">
+            {% for station in stations_progress %}
+            <div style="background: {% if station.is_completed %}#00b894{% elif station.id <= target_user.current_station %}#00d9ff{% else %}#1a1a2e{% endif %}; padding: 15px; border-radius: 10px; display: flex; align-items: center; gap: 12px;">
+                {% if station.is_completed %}
+                <!-- Иконка: Пройдена -->
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width: 24px; height: 24px; color: white;">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+                {% elif station.id <= target_user.current_station %}
+                <!-- Иконка: В процессе -->
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width: 24px; height: 24px; color: white;">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+                {% else %}
+                <!-- Иконка: Заблокирована -->
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width: 24px; height: 24px; color: #666;">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+                </svg>
+                {% endif %}
+                <div>
+                    <div style="font-weight: bold; color: {% if station.is_completed or station.id <= target_user.current_station %}white{% else %}#666{% endif %};">
+                        {{ station.title }}
+                    </div>
+                    <div style="font-size: 13px; color: {% if station.is_completed %}#e0f7fa{% elif station.id <= target_user.current_station %}#e0f7fa{% else %}#444{% endif %};">
+                        {% if station.is_completed %}
+                        <!-- Текст: Пройдена -->
+                        <span style="display: inline-flex; align-items: center; gap: 4px;">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width: 14px; height: 14px;">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                            </svg>
+                            Пройдена
+                        </span>
+                        {% elif station.id < target_user.current_station %}
+                        <!-- Текст: Пройдена (ранее) -->
+                        <span style="display: inline-flex; align-items: center; gap: 4px;">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width: 14px; height: 14px;">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                            </svg>
+                            Пройдена
+                        </span>
+                        {% elif station.id == target_user.current_station %}
+                        <!-- Текст: В процессе -->
+                        <span style="display: inline-flex; align-items: center; gap: 4px;">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width: 14px; height: 14px;">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                            </svg>
+                            В процессе
+                        </span>
+                        {% else %}
+                        <!-- Текст: Заблокирована -->
+                        <span style="display: inline-flex; align-items: center; gap: 4px;">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width: 14px; height: 14px;">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+                            </svg>
+                            Заблокирована
+                        </span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Действия -->
+    <div style="background: #0f3460; padding: 25px; border-radius: 15px; margin-bottom: 30px;">
+        <h3 style="color: #e94560; margin-bottom: 20px; display: flex; align-items: center; gap: 10px;">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width: 24px; height: 24px;">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+            </svg>
+            Действия
+        </h3>
+        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+            {% if target_user.is_banned %}
+            <form method="POST" action="{{ url_for('admin_unban_user', user_id=target_user.id) }}">
+                <button type="submit" style="background: #00b894; color: white; border: none; padding: 12px 25px; border-radius: 8px; cursor: pointer; font-weight: bold; display: flex; align-items: center; gap: 8px;">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width: 18px; height: 18px;">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z"/>
+                    </svg>
+                    Разблокировать
+                </button>
+            </form>
+            {% else %}
+            <form method="POST" action="{{ url_for('admin_ban_user', user_id=target_user.id) }}" style="display: flex; gap: 10px;">
+                <input type="text" name="ban_reason" placeholder="Причина блокировки" required style="padding: 10px; border-radius: 8px; border: 1px solid #0f3460; background: #1a1a2e; color: white;">
+                <button type="submit" style="background: #e94560; color: white; border: none; padding: 12px 25px; border-radius: 8px; cursor: pointer; font-weight: bold; display: flex; align-items: center; gap: 8px;">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width: 18px; height: 18px;">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+                    </svg>
+                    Заблокировать
+                </button>
+            </form>
+            {% endif %}
+            
+            <form method="POST" action="{{ url_for('admin_reset_user', user_id=target_user.id) }}" onsubmit="return confirm('Сбросить весь прогресс пользователя?');">
+                <button type="submit" style="background: #fdcb6e; color: #1a1a2e; border: none; padding: 12px 25px; border-radius: 8px; cursor: pointer; font-weight: bold; display: flex; align-items: center; gap: 8px;">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width: 18px; height: 18px;">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                    </svg>
+                    Сбросить прогресс
+                </button>
+            </form>
+            
+            {% if target_user.id != current_user.id %}
+            <form method="POST" action="{{ url_for('admin_delete_user', user_id=target_user.id) }}" onsubmit="return confirm('Удалить пользователя навсегда? Это действие нельзя отменить!');">
+                <button type="submit" style="background: #e94560; color: white; border: none; padding: 12px 25px; border-radius: 8px; cursor: pointer; font-weight: bold; display: flex; align-items: center; gap: 8px;">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width: 18px; height: 18px;">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                    </svg>
+                    Удалить аккаунт
+                </button>
+            </form>
+            {% endif %}
+        </div>
+    </div>
+
+    <div style="text-align: center;">
+        <a href="{{ url_for('admin_users') }}" style="color: #00d9ff; text-decoration: none; display: inline-flex; align-items: center; gap: 8px;">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width: 18px; height: 18px;">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+            </svg>
+            Назад к списку пользователей
+        </a>
+    </div>
+</div>
+{% endblock %}

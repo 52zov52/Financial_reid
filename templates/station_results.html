@@ -1,0 +1,131 @@
+{% extends "base.html" %}
+
+{% block title %}Результаты Станции {{ station_num }}{% endblock %}
+
+{% block content %}
+<div class="card" style="max-width: 900px; margin: 0 auto; padding: 40px;">
+    <!-- Заголовок -->
+    <div style="text-align: center; margin-bottom: 40px;">
+        <h1 style="color: #00d9ff; font-size: 36px; margin-bottom: 10px; display: flex; align-items: center; justify-content: center; gap: 12px;">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width: 32px; height: 32px;">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            Результаты Станции {{ station_num }}
+        </h1>
+        <h2 style="color: #aaa; font-size: 24px; margin-bottom: 30px;">{{ station_title }}</h2>
+    </div>
+    
+    <!-- Общая статистика -->
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 40px;">
+        <div style="background: linear-gradient(135deg, #00b894, #00cec9); color: white; padding: 25px; border-radius: 15px; text-align: center;">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width: 32px; height: 32px; margin: 0 auto 10px;">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+            </svg>
+            <div style="font-size: 48px; font-weight: bold; margin-bottom: 5px;">{{ correct_questions }}</div>
+            <div style="font-size: 14px; opacity: 0.9;">Правильных ответов</div>
+            <div style="font-size: 12px; opacity: 0.7; margin-top: 5px;">из {{ total_questions }}</div>
+        </div>
+        
+        <div style="background: linear-gradient(135deg, #fdcb6e, #f39c12); color: #2d3436; padding: 25px; border-radius: 15px; text-align: center;">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width: 32px; height: 32px; margin: 0 auto 10px;">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
+            </svg>
+            <div style="font-size: 48px; font-weight: bold; margin-bottom: 5px;">{{ accuracy }}%</div>
+            <div style="font-size: 14px; opacity: 0.9;">Точность</div>
+            <div style="font-size: 12px; opacity: 0.7; margin-top: 5px;">
+                {% if accuracy >= 80 %}Отлично{% elif accuracy >= 60 %}Хорошо{% else %}Можно лучше{% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- Таблица результатов по вопросам -->
+    <div style="background: #0f3460; padding: 25px; border-radius: 15px; margin-bottom: 40px;">
+        <h3 style="color: #00d9ff; margin-bottom: 20px; font-size: 20px; display: flex; align-items: center; gap: 10px;">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width: 24px; height: 24px;">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+            </svg>
+            Детализация по вопросам:
+        </h3>
+        
+        <div style="display: flex; flex-direction: column; gap: 15px;">
+            {% for result in question_results %}
+            <div style="background: #1a1a2e; padding: 20px; border-radius: 10px; border-left: 4px solid {% if result.is_correct %}#00b894{% else %}#e94560{% endif %};">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 15px;">
+                    <div style="flex: 1;">
+                        <div style="color: #aaa; font-size: 12px; margin-bottom: 5px;">Вопрос {{ loop.index }}</div>
+                        <div style="color: #eee; font-size: 15px; line-height: 1.5;">{{ result.question }}</div>
+                    </div>
+                    <div style="background: {% if result.is_correct %}#00b894{% else %}#e94560{% endif %}; color: white; padding: 8px 15px; border-radius: 20px; font-weight: bold; font-size: 14px; white-space: nowrap; margin-left: 15px; display: flex; align-items: center; gap: 5px;">
+                        {% if result.is_correct %}
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width: 16px; height: 16px;">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                        </svg>
+                        Верно
+                        {% else %}
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width: 16px; height: 16px;">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                        Неверно
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div style="background: {% if result.is_correct %}rgba(0, 184, 148, 0.1){% else %}rgba(233, 69, 96, 0.1){% endif %}; padding: 15px; border-radius: 8px;">
+                    <div style="color: #aaa; font-size: 12px; margin-bottom: 5px;">Ваш ответ:</div>
+                    <div style="color: {% if result.is_correct %}#00b894{% else %}#e94560{% endif %}; font-size: 14px; line-height: 1.4;">{{ result.user_answer }}</div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Блок для незавершенной Станции 6 -->
+    {% if station_num == 6 and correct_questions < total_questions %}
+    <div style="background: #e94560; color: white; padding: 25px; border-radius: 15px; margin-bottom: 30px; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 15px;">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width: 32px; height: 32px;">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        </svg>
+        <div>
+            <div style="font-size: 20px; font-weight: bold; margin-bottom: 5px;">Станция 6 не пройдена полностью!</div>
+            <div style="font-size: 16px; opacity: 0.9;">Правильных ответов: {{ correct_questions }} из {{ total_questions }}</div>
+        </div>
+        <a href="{{ url_for('access_station', station_num=6) }}" class="btn" style="background: white; color: #e94560; padding: 12px 30px; border-radius: 8px; font-weight: bold; display: inline-flex; align-items: center; gap: 8px; text-decoration: none;">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width: 20px; height: 20px;">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+            </svg>
+            Пройти заново
+        </a>
+    </div>
+    {% endif %}
+
+    <!-- Кнопки навигации -->
+    <div style="display: flex; gap: 15px; justify-content: center; flex-wrap: wrap;">
+        <a href="{{ url_for('dashboard') }}" class="btn" style="padding: 15px 30px; font-size: 16px; background: #0f3460; color: white; border: none; border-radius: 8px; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; text-decoration: none;">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width: 20px; height: 20px;">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
+            </svg>
+            Вернуться на главную
+        </a>
+        
+        {% if station_num == 6 and correct_questions < total_questions %}
+            <!-- Станция 6 не пройдена: только кнопка возврата на главную и повторной попытки (уже выведена выше) -->
+        {% elif station_num == 6 %}
+            <!-- Станция 6 пройдена полностью -->
+            <a href="{{ url_for('result') }}" class="btn" style="padding: 15px 30px; font-size: 16px; background: #00b894; color: white; border: none; border-radius: 8px; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; text-decoration: none;">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width: 20px; height: 20px;">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                </svg>
+                Итоговые результаты
+            </a>
+        {% else %}
+            <!-- Станции 1-5 -->
+            <a href="{{ url_for('access_station', station_num=station_num + 1) }}" class="btn" style="padding: 15px 30px; font-size: 16px; background: #00b894; color: white; border: none; border-radius: 8px; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; text-decoration: none;">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width: 20px; height: 20px;">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/>
+                </svg>
+                Перейти к Станции {{ station_num + 1 }}
+            </a>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+
+{% block title %}Настройки{% endblock %}
+
+{% block content %}
+<div class="card" style="max-width: 800px; margin: 0 auto; padding: 40px;">
+    <h1 style="color: #00d9ff; font-size: 32px; margin-bottom: 30px;">Настройки</h1>
+    
+    <!-- Опасная зона -->
+    <div style="background: rgba(233, 69, 96, 0.1); border: 2px solid #e94560; border-radius: 15px; padding: 30px; margin-top: 30px;">
+        <h2 style="color: #e94560; font-size: 24px; margin-bottom: 15px; display: flex; align-items: center; gap: 10px;">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width: 28px; height: 28px;">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+            </svg>
+            Опасная зона
+        </h2>
+        
+        <p style="color: #aaa; margin-bottom: 25px; font-size: 15px;">
+            Эти действия нельзя отменить. Будьте осторожны!
+        </p>
+        
+        <form method="POST" action="{{ url_for('reset') }}" onsubmit="return confirm('Вы уверены, что хотите сбросить весь прогресс? Это действие нельзя отменить!');">
+            <button type="submit" class="btn btn-danger" style="width: 100%; padding: 15px; font-size: 16px; font-weight: 600;">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width: 20px; height: 20px; vertical-align: middle; margin-right: 8px;">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                </svg>
+                Сбросить прогресс игры
+            </button>
+        </form>
+        
+        <p style="color: #666; font-size: 13px; margin-top: 15px; text-align: center;">
+            Это удалит весь ваш прогресс и начнёт игру заново
+        </p>
+    </div>
+    
+    <!-- Кнопка назад -->
+    <div style="text-align: center; margin-top: 30px;">
+        <a href="{{ url_for('profile') }}" style="color: #00d9ff; text-decoration: none; font-size: 15px; display: inline-flex; align-items: center; gap: 8px; transition: all 0.3s;">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width: 18px; height: 18px;">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+            </svg>
+            Вернуться в профиль
+        </a>
+    </div>
+</div>
+{% endblock %}

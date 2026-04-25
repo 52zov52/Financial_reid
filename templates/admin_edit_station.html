@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+{% block title %}Редактирование станции{% endblock %}
+{% block content %}
+<div class="card" style="max-width: 1000px; margin: 0 auto; padding: 40px;">
+    <h1 style="color: #00d9ff; margin-bottom: 30px; display: flex; align-items: center; gap: 12px;">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width: 32px; height: 32px;">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+        </svg>
+        Станция: {{ station_data.get('title', '') }}
+    </h1>
+
+    <form method="POST" style="background: #0f3460; padding: 25px; border-radius: 15px; margin-bottom: 30px;">
+        <input type="hidden" name="action" value="update_description">
+        <h3 style="color: #00d9ff; margin-bottom: 20px; display: flex; align-items: center; gap: 10px;">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width: 24px; height: 24px;">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            Общая информация
+        </h3>
+        
+        <div class="form-group">
+            <label style="color: #aaa; display: block; margin-bottom: 5px;">Название станции</label>
+            <input type="text" name="title" value="{{ station_data.get('title', '') }}" style="width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #1a1a2e; background: #1a1a2e; color: white;">
+        </div>
+        
+        <div class="form-group">
+            <label style="color: #aaa; display: block; margin-bottom: 5px;">Описание</label>
+            <textarea name="description" rows="3" style="width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #1a1a2e; background: #1a1a2e; color: white;">{{ station_data.get('description', '') }}</textarea>
+        </div>
+        
+        <div class="form-group">
+            <label style="color: #aaa; display: block; margin-bottom: 5px;">Макс. баллов</label>
+            <input type="number" name="points" value="{{ station_data.get('points', 0) }}" style="width: 100px; padding: 12px; border-radius: 8px; border: 1px solid #1a1a2e; background: #1a1a2e; color: white;">
+        </div>
+        
+        <button type="submit" style="background: #00d9ff; color: #1a1a2e; border: none; padding: 12px 30px; border-radius: 8px; cursor: pointer; font-weight: bold; display: flex; align-items: center; gap: 8px;">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width: 20px; height: 20px;">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"/>
+            </svg>
+            Сохранить
+        </button>
+    </form>
+
+    <div style="background: #0f3460; padding: 25px; border-radius: 15px; margin-bottom: 30px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <h3 style="color: #00d9ff; margin: 0; display: flex; align-items: center; gap: 10px;">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width: 24px; height: 24px;">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+                Вопросы ({{ station_data.get('questions', []) | length }})
+            </h3>
+            <form method="POST" style="display: inline;">
+                <input type="hidden" name="action" value="add_question">
+                <button type="submit" style="background: #00b894; color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: bold; display: flex; align-items: center; gap: 5px;">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width: 18px; height: 18px;">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                    </svg>
+                    Добавить вопрос
+                </button>
+            </form>
+        </div>
+
+        {% for question in station_data.get('questions', []) %}
+        <div style="background: #1a1a2e; padding: 20px; border-radius: 10px; margin-bottom: 15px;">
+            <form method="POST">
+                <input type="hidden" name="action" value="update_question">
+                <input type="hidden" name="question_index" value="{{ loop.index0 }}">
+                
+                <div class="form-group">
+                    <label style="color: #aaa; display: block; margin-bottom: 5px;">Вопрос {{ loop.index }}</label>
+                    <input type="text" name="question_text" value="{{ question.get('text', '') }}" style="width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #0f3460; background: #0f3460; color: white;">
+                </div>
+
+                <div class="form-group">
+                    <label style="color: #aaa; display: block; margin-bottom: 10px;">Варианты ответов</label>
+                    <input type="hidden" name="options_count" value="{{ question.get('options', []) | length }}">
+                    
+                    {% for option in question.get('options', []) %}
+                    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+                        <input type="checkbox" name="correct_{{ loop.index0 }}" {% if option in question.get('correct_answers', []) %}checked{% endif %} style="width: 20px; height: 20px;">
+                        <input type="text" name="option_{{ loop.index0 }}" value="{{ option }}" style="flex: 1; padding: 10px; border-radius: 8px; border: 1px solid #0f3460; background: #0f3460; color: white;">
+                        <span style="color: {% if option in question.get('correct_answers', []) %}#00b894{% else %}#e94560{% endif %}; font-size: 12px; display: flex; align-items: center; gap: 3px;">
+                            {% if option in question.get('correct_answers', []) %}
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width: 14px; height: 14px;">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                            </svg>
+                            Правильный
+                            {% else %}
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width: 14px; height: 14px;">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                            </svg>
+                            Неправильный
+                            {% endif %}
+                        </span>
+                    </div>
+                    {% endfor %}
+                </div>
+
+                <div style="display: flex; gap: 10px;">
+                    <button type="submit" style="background: #00d9ff; color: #1a1a2e; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: bold; display: flex; align-items: center; gap: 5px;">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width: 18px; height: 18px;">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"/>
+                        </svg>
+                        Сохранить вопрос
+                    </button>
+                </div>
+            </form>
+
+            <form method="POST" style="margin-top: 10px;" onsubmit="return confirm('Удалить этот вопрос?');">
+                <input type="hidden" name="action" value="delete_question">
+                <input type="hidden" name="question_index" value="{{ loop.index0 }}">
+                <button type="submit" style="background: #e94560; color: white; border: none; padding: 8px 15px; border-radius: 8px; cursor: pointer; font-size: 14px; display: flex; align-items: center; gap: 5px;">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width: 16px; height: 16px;">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                    </svg>
+                    Удалить вопрос
+                </button>
+            </form>
+        </div>
+        {% endfor %}
+    </div>
+
+    <div style="text-align: center;">
+        <a href="{{ url_for('admin_edit_stations') }}" style="color: #00d9ff; text-decoration: none; display: inline-flex; align-items: center; gap: 8px;">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width: 18px; height: 18px;">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+            </svg>
+            Назад к списку станций
+        </a>
+    </div>
+</div>
+{% endblock %}

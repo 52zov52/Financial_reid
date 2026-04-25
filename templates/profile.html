@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+
+{% block title %}Профиль - {{ user.username }}{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h2>Профиль пользователя</h2>
+    
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px;">
+        <div>
+            <h3>Информация</h3>
+            <p><strong>Имя:</strong> {{ user.username }}</p>
+            <p><strong>Аккаунт создан:</strong> {{ user.created_at.strftime('%d.%m.%Y %H:%M') if user.created_at else 'Неизвестно' }}</p>
+        </div>
+        
+        <div>
+            <h3>Прогресс игры</h3>
+            <p><strong>Текущая станция:</strong> {{ user.current_station }}/6</p>
+            <p><strong>Пройдено станций:</strong> {{ stations_completed }}/6</p>
+            <p><strong>Статус:</strong> {% if user.is_finished %}Завершено{% else %}В процессе{% endif %}</p>
+        </div>
+    </div>
+    
+    <div style="margin-top: 30px; display: flex; gap: 15px; flex-wrap: wrap;">
+        <a href="{{ url_for('station') }}" class="btn btn-primary">
+            {% if user.is_finished %}Пройти заново{% else %}Продолжить игру{% endif %}
+        </a>
+        <a href="{{ url_for('settings') }}" class="btn btn-secondary">Настройки</a>
+        {% if user.is_finished %}
+        <a href="{{ url_for('result') }}" class="btn btn-success">Результаты</a>
+        {% endif %}
+    </div>
+</div>
+
+<div class="card">
+    <h3>Детали по станциям</h3>
+    <div style="display: grid; gap: 10px;">
+        {% for i in range(1, 7) %}
+        <div style="background: #0f3460; padding: 15px; border-radius: 5px; display: flex; justify-content: space-between; align-items: center;">
+            <span><strong>Станция {{ i }}</strong></span>
+            <span>
+                {% if i < user.current_station %}
+                Пройдено
+                {% elif i == user.current_station and not user.is_finished %}
+                Текущая
+                {% elif user.is_finished and i == 6 %}
+                Пройдено
+                {% else %}
+                Ожидает
+                {% endif %}
+            </span>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

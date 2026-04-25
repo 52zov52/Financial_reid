@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+
+{% block title %}Игра завершена!{% endblock %}
+
+{% block content %}
+<div class="card" style="text-align: center; padding: 50px;">
+    <h1 style="font-size: 48px; margin-bottom: 20px;">Игра завершена!</h1>
+    
+    
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin: 30px 0; text-align: left;">
+        <div style="background: #0f3460; padding: 20px; border-radius: 10px;">
+            <h3 style="margin-top: 0; color: #00d9ff;">Игрок</h3>
+            <p><strong>Имя:</strong> {{ user.username }}</p>
+            <p><strong>Группа:</strong> {{ user.group or 'Не указана' }}</p>
+        </div>
+        
+        <div style="background: #0f3460; padding: 20px; border-radius: 10px;">
+            <h3 style="margin-top: 0; color: #00d9ff;">Статистика</h3>
+            <p><strong>Станций пройдено:</strong> 6 из 6</p>
+        </div>
+    </div>
+    
+    <div style="margin-top: 40px;">
+        <form method="POST" action="/reset" style="display: inline-block; margin: 10px;">
+            <button type="submit" class="btn btn-primary" style="font-size: 18px; padding: 15px 40px;">
+                Пройти заново
+            </button>
+        </form>
+        
+        <a href="{{ url_for('profile') }}" class="btn btn-secondary" style="font-size: 18px; padding: 15px 40px; display: inline-block; margin: 10px;">
+            В профиль
+        </a>
+        
+        <a href="{{ url_for('logout') }}" class="btn btn-outline" style="font-size: 18px; padding: 15px 40px; display: inline-block; margin: 10px; border: 2px solid #e94560; color: #e94560; background: transparent;">
+            Выйти
+        </a>
+    </div>
+</div>
+
+<div class="card" style="margin-top: 30px;">
+    <h3>Детали по станциям</h3>
+    <div style="display: grid; gap: 10px;">
+        {% for i in range(1, 7) %}
+        <div style="background: #0f3460; padding: 15px; border-radius: 5px; display: flex; justify-content: space-between; align-items: center;">
+            <span><strong>Станция {{ i }}</strong></span>
+            <span style="color: #00b894;">Пройдено</span>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<div style="margin-top: 30px; text-align: center;">
+    <a href="{{ url_for('dashboard') }}" class="btn btn-primary" style="padding: 12px 30px; font-size: 16px;">
+        Вернуться на главную
+    </a>
+</div>
+{% endblock %}

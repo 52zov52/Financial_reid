@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}Редактор станций{% endblock %}
+{% block content %}
+<div class="card" style="max-width: 1200px; margin: 0 auto; padding: 40px;">
+    <h1 style="color: #00d9ff; margin-bottom: 30px; display: flex; align-items: center; gap: 12px;">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width: 32px; height: 32px;">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+        </svg>
+        Редактор станций
+    </h1>
+    
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;">
+        {% for station in stations %}
+        <a href="{{ url_for('admin_edit_station', station_key=station.key) }}" style="background: #0f3460; padding: 25px; border-radius: 15px; text-decoration: none; color: white; transition: all 0.3s;">
+            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width: 24px; height: 24px; color: #00d9ff;">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>
+                </svg>
+                <span style="font-size: 24px; font-weight: bold;">Станция {{ station.id }}</span>
+            </div>
+            <div style="color: #aaa; margin-bottom: 15px;">{{ station.data.get('title', '') }}</div>
+            <div style="color: #00d9ff; font-size: 14px; display: flex; align-items: center; gap: 5px;">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width: 16px; height: 16px;">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+                {% if station.data.get('questions') %}
+                {{ station.data['questions'] | length }} вопросов
+                {% else %}
+                0 вопросов
+                {% endif %}
+            </div>
+        </a>
+        {% endfor %}
+    </div>
+
+    <div style="text-align: center; margin-top: 30px;">
+        <a href="{{ url_for('admin') }}" style="color: #00d9ff; text-decoration: none; display: inline-flex; align-items: center; gap: 8px;">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width: 18px; height: 18px;">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+            </svg>
+            Назад в админ-панель
+        </a>
+    </div>
+</div>
+{% endblock %}
