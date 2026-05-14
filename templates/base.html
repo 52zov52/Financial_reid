@@ -41,7 +41,7 @@
                         Настройки
                     </a>
                 </li>
-                {% if session.get('username', '').lower() in ['admin', 'админ'] %}
+                {% if session.get('is_admin') %}
                 <li>
                     <a href="{{ url_for('admin') }}" class="navbar-link">
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">

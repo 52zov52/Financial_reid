@@ -1,132 +1,569 @@
 {% extends "base.html" %}
-{% block title %}Редактирование станции{% endblock %}
+{% block title %}Редактор: {{ station.title }}{% endblock %}
 {% block content %}
-<div class="card" style="max-width: 1000px; margin: 0 auto; padding: 40px;">
-    <h1 style="color: #00d9ff; margin-bottom: 30px; display: flex; align-items: center; gap: 12px;">
-        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width: 32px; height: 32px;">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
-        </svg>
-        Станция: {{ station_data.get('title', '') }}
-    </h1>
 
-    <form method="POST" style="background: #0f3460; padding: 25px; border-radius: 15px; margin-bottom: 30px;">
-        <input type="hidden" name="action" value="update_description">
-        <h3 style="color: #00d9ff; margin-bottom: 20px; display: flex; align-items: center; gap: 10px;">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width: 24px; height: 24px;">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+<div class="card" style="max-width: 1000px; margin: 0 auto; padding: 30px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; flex-wrap: wrap; gap: 10px;">
+        <div>
+            <h1 style="color: #00d9ff; margin: 0; display: flex; align-items: center; gap: 12px;">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width: 28px; height: 28px;">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                </svg>
+                {{ station.title }}
+            </h1>
+            <div style="margin-top: 5px; display: flex; gap: 8px; flex-wrap: wrap;">
+                <span class="editor-badge editor-badge-info">{{ station.type }}</span>
+                {% if station.questions %}
+                <span class="editor-badge editor-badge-success">{{ station.questions|length }} вопросов</span>
+                {% endif %}
+                {% if station.rounds %}
+                <span class="editor-badge editor-badge-success">{{ station.rounds|length }} раундов</span>
+                {% endif %}
+                {% if station.terms %}
+                <span class="editor-badge editor-badge-success">{{ station.terms|length }} терминов</span>
+                {% endif %}
+            </div>
+        </div>
+        <a href="{{ url_for('admin_edit_stations') }}" class="editor-btn editor-btn-outline editor-btn-sm">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
             </svg>
-            Общая информация
-        </h3>
-        
-        <div class="form-group">
-            <label style="color: #aaa; display: block; margin-bottom: 5px;">Название станции</label>
-            <input type="text" name="title" value="{{ station_data.get('title', '') }}" style="width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #1a1a2e; background: #1a1a2e; color: white;">
-        </div>
-        
-        <div class="form-group">
-            <label style="color: #aaa; display: block; margin-bottom: 5px;">Описание</label>
-            <textarea name="description" rows="3" style="width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #1a1a2e; background: #1a1a2e; color: white;">{{ station_data.get('description', '') }}</textarea>
-        </div>
-        
-        <div class="form-group">
-            <label style="color: #aaa; display: block; margin-bottom: 5px;">Макс. баллов</label>
-            <input type="number" name="points" value="{{ station_data.get('points', 0) }}" style="width: 100px; padding: 12px; border-radius: 8px; border: 1px solid #1a1a2e; background: #1a1a2e; color: white;">
-        </div>
-        
-        <button type="submit" style="background: #00d9ff; color: #1a1a2e; border: none; padding: 12px 30px; border-radius: 8px; cursor: pointer; font-weight: bold; display: flex; align-items: center; gap: 8px;">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width: 20px; height: 20px;">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"/>
+            Назад к списку
+        </a>
+    </div>
+
+    <!-- ==================== ОСНОВНЫЕ НАСТРОЙКИ ==================== -->
+    <form method="POST" class="editor-card">
+        <input type="hidden" name="action" value="save_settings">
+        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 20px;">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width: 20px; height: 20px; color: #00d9ff;">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
             </svg>
-            Сохранить
-        </button>
+            <h2 style="color: #00d9ff; margin: 0; font-size: 18px;">Основные настройки</h2>
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+            <div>
+                <label class="editor-label">Название станции</label>
+                <input type="text" name="title" value="{{ station.title }}" class="editor-input" required>
+            </div>
+            {% if station.points is defined %}
+            <div>
+                <label class="editor-label">Баллы за прохождение</label>
+                <input type="number" name="points" value="{{ station.points }}" class="editor-input" min="1">
+            </div>
+            {% endif %}
+            {% if station.type == 'budget' %}
+            <div>
+                <label class="editor-label">Мин. сбережения (ИК)</label>
+                <input type="number" name="min_savings" value="{{ station.min_savings }}" class="editor-input" min="0">
+            </div>
+            <div>
+                <label class="editor-label">Макс. доход (ИК)</label>
+                <input type="number" name="max_income" value="{{ station.max_income }}" class="editor-input" min="0">
+            </div>
+            {% endif %}
+        </div>
+        <div style="margin-top: 15px;">
+            <label class="editor-label">Описание станции</label>
+            <textarea name="description" class="editor-textarea" style="min-height: 60px;">{{ station.description }}</textarea>
+        </div>
+        <div style="margin-top: 15px;">
+            <button type="submit" class="editor-btn editor-btn-primary">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                </svg>
+                Сохранить настройки
+            </button>
+        </div>
     </form>
 
-    <div style="background: #0f3460; padding: 25px; border-radius: 15px; margin-bottom: 30px;">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-            <h3 style="color: #00d9ff; margin: 0; display: flex; align-items: center; gap: 10px;">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width: 24px; height: 24px;">
+    <!-- ==================== СТАНЦИЯ 1: BUDGET (ПОЛЯ) ==================== -->
+    {% if station.type == 'budget' %}
+    <div class="editor-card success">
+        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 20px;">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width: 20px; height: 20px; color: #00b894;">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+            </svg>
+            <h2 style="color: #00b894; margin: 0; font-size: 18px;">Поля бюджета</h2>
+        </div>
+        {% for field in station.fields %}
+        <form method="POST" class="editor-question">
+            <input type="hidden" name="action" value="save_field">
+            <input type="hidden" name="field_index" value="{{ loop.index0 }}">
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 10px; align-items: end;">
+                <div>
+                    <label class="editor-label">Системное имя</label>
+                    <input type="text" name="field_name" value="{{ field.name }}" class="editor-input">
+                </div>
+                <div>
+                    <label class="editor-label">Название</label>
+                    <input type="text" name="field_label" value="{{ field.label }}" class="editor-input">
+                </div>
+                <div>
+                    <label class="editor-label">Мин.</label>
+                    <input type="number" name="field_min" value="{{ field.min | default(0) }}" class="editor-input" min="0">
+                </div>
+                <div style="display: flex; gap: 6px; align-items: end;">
+                    <div style="flex: 1;">
+                        <label class="editor-label">Макс.</label>
+                        <input type="number" name="field_max" value="{{ field.max | default(8000) }}" class="editor-input" min="0">
+                    </div>
+                    <button type="submit" class="editor-btn editor-btn-success editor-btn-sm" style="margin-bottom: 0;">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </form>
+        <form method="POST" style="margin-top: 5px; text-align: right;">
+            <input type="hidden" name="action" value="delete_field">
+            <input type="hidden" name="field_index" value="{{ loop.index0 }}">
+            <button type="submit" class="editor-btn editor-btn-danger editor-btn-sm" onclick="return confirm('Удалить поле?')">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                </svg>
+                Удалить
+            </button>
+        </form>
+        {% endfor %}
+        <form method="POST" style="margin-top: 15px;">
+            <input type="hidden" name="action" value="add_field">
+            <button type="submit" class="editor-btn editor-btn-primary editor-btn-sm">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                </svg>
+                Добавить поле
+            </button>
+        </form>
+    </div>
+
+    <!-- ==================== СТАНЦИИ С ВОПРОСАМИ (choice_multiple, scammer_quiz, text) ==================== -->
+    {% elif station.type in ('choice_multiple', 'scammer_quiz', 'text') %}
+    <div class="editor-card success">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px;">
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width: 20px; height: 20px; color: #00b894;">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
                 </svg>
-                Вопросы ({{ station_data.get('questions', []) | length }})
-            </h3>
-            <form method="POST" style="display: inline;">
+                <h2 style="color: #00b894; margin: 0; font-size: 18px;">
+                    Вопросы ({{ station.questions|length }})
+                </h2>
+            </div>
+            <form method="POST">
                 <input type="hidden" name="action" value="add_question">
-                <button type="submit" style="background: #00b894; color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: bold; display: flex; align-items: center; gap: 5px;">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width: 18px; height: 18px;">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                <button type="submit" class="editor-btn editor-btn-primary editor-btn-sm">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
                     </svg>
                     Добавить вопрос
                 </button>
             </form>
         </div>
 
-        {% for question in station_data.get('questions', []) %}
-        <div style="background: #1a1a2e; padding: 20px; border-radius: 10px; margin-bottom: 15px;">
-            <form method="POST">
-                <input type="hidden" name="action" value="update_question">
-                <input type="hidden" name="question_index" value="{{ loop.index0 }}">
-                
-                <div class="form-group">
-                    <label style="color: #aaa; display: block; margin-bottom: 5px;">Вопрос {{ loop.index }}</label>
-                    <input type="text" name="question_text" value="{{ question.get('text', '') }}" style="width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #0f3460; background: #0f3460; color: white;">
-                </div>
+        {% if station.questions|length == 0 %}
+        <div class="empty-state">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            <p>Нет вопросов. Нажмите "Добавить вопрос", чтобы создать первый.</p>
+        </div>
+        {% endif %}
 
-                <div class="form-group">
-                    <label style="color: #aaa; display: block; margin-bottom: 10px;">Варианты ответов</label>
-                    <input type="hidden" name="options_count" value="{{ question.get('options', []) | length }}">
-                    
-                    {% for option in question.get('options', []) %}
-                    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
-                        <input type="checkbox" name="correct_{{ loop.index0 }}" {% if option in question.get('correct_answers', []) %}checked{% endif %} style="width: 20px; height: 20px;">
-                        <input type="text" name="option_{{ loop.index0 }}" value="{{ option }}" style="flex: 1; padding: 10px; border-radius: 8px; border: 1px solid #0f3460; background: #0f3460; color: white;">
-                        <span style="color: {% if option in question.get('correct_answers', []) %}#00b894{% else %}#e94560{% endif %}; font-size: 12px; display: flex; align-items: center; gap: 3px;">
-                            {% if option in question.get('correct_answers', []) %}
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width: 14px; height: 14px;">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+        {% for question in station.questions %}
+        {% set q_idx = loop.index0 %}
+        <div class="editor-question">
+            <div class="editor-question-header">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <span style="background: #00d9ff; color: #1a1a2e; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 13px;">{{ question.id }}</span>
+                    <span style="font-weight: 600;">{{ question.text[:60] }}{% if question.text|length > 60 %}...{% endif %}</span>
+                </div>
+                <div style="display: flex; gap: 6px;">
+                    <button type="button" class="editor-btn editor-btn-warning editor-btn-sm toggle-question" data-target="q-{{ q_idx }}">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width: 14px; height: 14px;">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                        </svg>
+                        Редактировать
+                    </button>
+                    <form method="POST" onsubmit="return confirm('Удалить вопрос?')">
+                        <input type="hidden" name="action" value="delete_question">
+                        <input type="hidden" name="question_index" value="{{ q_idx }}">
+                        <button type="submit" class="editor-btn editor-btn-danger editor-btn-sm">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
                             </svg>
-                            Правильный
-                            {% else %}
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width: 14px; height: 14px;">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                            </svg>
-                            Неправильный
-                            {% endif %}
-                        </span>
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <div id="q-{{ q_idx }}" style="display: none;">
+                <form method="POST">
+                    <input type="hidden" name="action" value="save_question">
+                    <input type="hidden" name="question_index" value="{{ q_idx }}">
+
+                    <div style="margin-bottom: 12px;">
+                        <label class="editor-label">Текст вопроса</label>
+                        <textarea name="question_text" class="editor-textarea" style="min-height: 50px;">{{ question.text }}</textarea>
                     </div>
-                    {% endfor %}
-                </div>
 
-                <div style="display: flex; gap: 10px;">
-                    <button type="submit" style="background: #00d9ff; color: #1a1a2e; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: bold; display: flex; align-items: center; gap: 5px;">
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width: 18px; height: 18px;">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"/>
+                    {% if station.type == 'text' %}
+                    <div style="margin-bottom: 12px;">
+                        <label class="editor-label">Тип вопроса</label>
+                        <select name="question_type" class="editor-input q-type-select" data-target="q-type-{{ q_idx }}">
+                            <option value="text" {% if question.type == 'text' %}selected{% endif %}>Текстовый ответ (ключевые слова)</option>
+                            <option value="choice" {% if question.type == 'choice' %}selected{% endif %}>Выбор варианта</option>
+                        </select>
+                    </div>
+
+                    <div id="q-type-{{ q_idx }}" class="q-type-fields">
+                        {% if question.type == 'choice' %}
+                        <div class="q-options-editor">
+                            <label class="editor-label">Варианты ответа</label>
+                            <p style="color:#aaa;font-size:12px;margin-bottom:8px;">Отметьте правильный вариант</p>
+                            {% for option in question.options %}
+                            <div class="editor-option-row">
+                                <input type="text" name="option_{{ loop.index0 }}" value="{{ option }}" class="editor-input">
+                                <input type="radio" name="correct_option" value="option_{{ loop.index0 }}" {% if option == question.correct_answer %}checked{% endif %}>
+                            </div>
+                            {% endfor %}
+                            <input type="hidden" name="options_count" value="{{ question.options|length }}">
+                        </div>
+                        {% else %}
+                        <div>
+                            <label class="editor-label">Ключевые слова (через запятую)</label>
+                            <p style="color:#aaa;font-size:12px;margin-bottom:8px;">Ответ считается правильным, если содержит хотя бы одно из этих слов</p>
+                            <input type="text" name="keywords" value="{{ question.keywords|join(', ') }}" class="editor-input">
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    {% else %}
+                    <div style="margin-bottom: 12px;">
+                        <label class="editor-label">Варианты ответа</label>
+                        <p style="color:#aaa;font-size:12px;margin-bottom:8px;">
+                            {% if station.type == 'choice_multiple' %}
+                            Отметьте ВСЕ правильные варианты (можно выбрать несколько)
+                            {% else %}
+                            Отметьте правильный вариант
+                            {% endif %}
+                        </p>
+                        {% for option in question.options %}
+                        <div class="editor-option-row">
+                            <input type="text" name="option_{{ loop.index0 }}" value="{{ option }}" class="editor-input">
+                            {% if station.type == 'choice_multiple' %}
+                            <input type="checkbox" name="correct_{{ loop.index0 }}" {% if option in question.correct_answers %}checked{% endif %}>
+                            {% else %}
+                            <input type="radio" name="correct_option" value="option_{{ loop.index0 }}" {% if option == question.correct_answer %}checked{% endif %}>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                        <input type="hidden" name="options_count" value="{{ question.options|length }}">
+                    </div>
+                    {% endif %}
+
+                    {% if station.type == 'scammer_quiz' %}
+                    <div style="margin-bottom: 12px;">
+                        <label class="editor-label">Объяснение правильного ответа</label>
+                        <textarea name="explanation" class="editor-textarea" style="min-height: 50px;">{{ question.explanation or '' }}</textarea>
+                    </div>
+                    {% endif %}
+
+                    <button type="submit" class="editor-btn editor-btn-success editor-btn-sm">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
                         </svg>
                         Сохранить вопрос
                     </button>
-                </div>
-            </form>
-
-            <form method="POST" style="margin-top: 10px;" onsubmit="return confirm('Удалить этот вопрос?');">
-                <input type="hidden" name="action" value="delete_question">
-                <input type="hidden" name="question_index" value="{{ loop.index0 }}">
-                <button type="submit" style="background: #e94560; color: white; border: none; padding: 8px 15px; border-radius: 8px; cursor: pointer; font-size: 14px; display: flex; align-items: center; gap: 5px;">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width: 16px; height: 16px;">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-                    </svg>
-                    Удалить вопрос
-                </button>
-            </form>
+                </form>
+            </div>
         </div>
         {% endfor %}
     </div>
 
-    <div style="text-align: center;">
-        <a href="{{ url_for('admin_edit_stations') }}" style="color: #00d9ff; text-decoration: none; display: inline-flex; align-items: center; gap: 8px;">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width: 18px; height: 18px;">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
-            </svg>
-            Назад к списку станций
-        </a>
+    <!-- ==================== СТАНЦИЯ 3: QUIZ ==================== -->
+    {% elif station.type == 'quiz' %}
+    <div class="editor-card warning">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px;">
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width: 20px; height: 20px; color: #fdcb6e;">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
+                </svg>
+                <h2 style="color: #fdcb6e; margin: 0; font-size: 18px;">Раунды ({{ station.rounds|length }})</h2>
+            </div>
+            <form method="POST">
+                <input type="hidden" name="action" value="add_round">
+                <button type="submit" class="editor-btn editor-btn-primary editor-btn-sm">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                    </svg>
+                    Добавить раунд
+                </button>
+            </form>
+        </div>
+
+        {% for round_data in station.rounds %}
+        {% set r_idx = loop.index0 %}
+        <div class="editor-round">
+            <div class="editor-round-header">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <span style="background: #fdcb6e; color: #1a1a2e; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 13px;">{{ round_data.id }}</span>
+                    <span style="font-weight: 600;">{{ round_data.name }}</span>
+                    <span style="color:#aaa;font-size:13px;">({{ round_data.questions|length }} вопросов)</span>
+                </div>
+                <div style="display: flex; gap: 6px;">
+                    <button type="button" class="editor-btn editor-btn-warning editor-btn-sm toggle-question" data-target="round-{{ r_idx }}">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width: 14px; height: 14px;">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                        </svg>
+                        Редактировать
+                    </button>
+                    <form method="POST" onsubmit="return confirm('Удалить раунд?')">
+                        <input type="hidden" name="action" value="delete_round">
+                        <input type="hidden" name="round_index" value="{{ r_idx }}">
+                        <button type="submit" class="editor-btn editor-btn-danger editor-btn-sm">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                            </svg>
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <div id="round-{{ r_idx }}" style="display: none;">
+                <form method="POST" style="margin-bottom: 15px;">
+                    <input type="hidden" name="action" value="save_round">
+                    <input type="hidden" name="round_index" value="{{ r_idx }}">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
+                        <div>
+                            <label class="editor-label">Название раунда</label>
+                            <input type="text" name="round_name" value="{{ round_data.name }}" class="editor-input">
+                        </div>
+                        <div>
+                            <label class="editor-label">Описание</label>
+                            <input type="text" name="round_description" value="{{ round_data.description or '' }}" class="editor-input">
+                        </div>
+                    </div>
+                    <button type="submit" class="editor-btn editor-btn-success editor-btn-sm">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                        </svg>
+                        Сохранить раунд
+                    </button>
+                </form>
+
+                <div style="border-top: 1px solid rgba(253,203,110,0.2); padding-top: 15px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                        <span style="color: #fdcb6e; font-weight: 600; font-size: 14px;">Вопросы раунда</span>
+                        <form method="POST">
+                            <input type="hidden" name="action" value="add_round_question">
+                            <input type="hidden" name="round_index" value="{{ r_idx }}">
+                            <button type="submit" class="editor-btn editor-btn-primary editor-btn-sm">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                                </svg>
+                                Добавить вопрос
+                            </button>
+                        </form>
+                    </div>
+
+                    {% for q in round_data.questions %}
+                    {% set rq_idx = loop.index0 %}
+                    <div class="editor-question" style="border-color: rgba(253,203,110,0.2);">
+                        <div class="editor-question-header">
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                                <span style="background: #fdcb6e; color: #1a1a2e; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 11px;">{{ q.id }}</span>
+                                <span style="font-size: 14px;">{{ q.text[:50] }}{% if q.text|length > 50 %}...{% endif %}</span>
+                            </div>
+                            <div style="display: flex; gap: 6px;">
+                                <button type="button" class="editor-btn editor-btn-warning editor-btn-sm toggle-question" data-target="rq-{{ r_idx }}-{{ rq_idx }}">
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width: 14px; height: 14px;">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                                    </svg>
+                                </button>
+                                <form method="POST" onsubmit="return confirm('Удалить вопрос?')">
+                                    <input type="hidden" name="action" value="delete_round_question">
+                                    <input type="hidden" name="round_index" value="{{ r_idx }}">
+                                    <input type="hidden" name="question_index" value="{{ rq_idx }}">
+                                    <button type="submit" class="editor-btn editor-btn-danger editor-btn-sm">
+                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                        </svg>
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+
+                        <div id="rq-{{ r_idx }}-{{ rq_idx }}" style="display: none;">
+                            <form method="POST">
+                                <input type="hidden" name="action" value="save_round_question">
+                                <input type="hidden" name="round_index" value="{{ r_idx }}">
+                                <input type="hidden" name="question_index" value="{{ rq_idx }}">
+
+                                <div style="margin-bottom: 12px;">
+                                    <label class="editor-label">Текст вопроса</label>
+                                    <textarea name="question_text" class="editor-textarea" style="min-height: 50px;">{{ q.text }}</textarea>
+                                </div>
+
+                                {% if round_data.id == 3 %}
+                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px;">
+                                    <div>
+                                        <label class="editor-label">Изображение (имя файла)</label>
+                                        <input type="text" name="image" value="{{ q.image or '' }}" class="editor-input" placeholder="rebus.jpg">
+                                    </div>
+                                    <div>
+                                        <label class="editor-label">Подсказка</label>
+                                        <input type="text" name="hint" value="{{ q.hint or '' }}" class="editor-input">
+                                    </div>
+                                </div>
+                                <div style="margin-bottom: 12px;">
+                                    <label class="editor-label">Правильные ответы (через запятую)</label>
+                                    <input type="text" name="correct_answers" value="{{ q.correct_answers|join(', ') }}" class="editor-input">
+                                </div>
+                                {% else %}
+                                <div style="margin-bottom: 12px;">
+                                    <label class="editor-label">Варианты ответа</label>
+                                    {% for option in q.options %}
+                                    <div class="editor-option-row">
+                                        <input type="text" name="option_{{ loop.index0 }}" value="{{ option }}" class="editor-input">
+                                        <input type="radio" name="correct_option" value="option_{{ loop.index0 }}" {% if option == q.correct_answer %}checked{% endif %}>
+                                    </div>
+                                    {% endfor %}
+                                    <input type="hidden" name="options_count" value="{{ q.options|length }}">
+                                </div>
+                                {% endif %}
+
+                                <button type="submit" class="editor-btn editor-btn-success editor-btn-sm">
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                                    </svg>
+                                    Сохранить вопрос
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
     </div>
+
+    <!-- ==================== СТАНЦИЯ 5: MATCHING_PUZZLE ==================== -->
+    {% elif station.type == 'matching_puzzle' %}
+    <div class="editor-card success">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px;">
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width: 20px; height: 20px; color: #00b894;">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/>
+                </svg>
+                <h2 style="color: #00b894; margin: 0; font-size: 18px;">Термины ({{ station.terms|length }})</h2>
+            </div>
+            <form method="POST">
+                <input type="hidden" name="action" value="add_term">
+                <button type="submit" class="editor-btn editor-btn-primary editor-btn-sm">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                    </svg>
+                    Добавить термин
+                </button>
+            </form>
+        </div>
+
+        {% for term in station.terms %}
+        {% set t_idx = loop.index0 %}
+        <div class="editor-question">
+            <div class="editor-question-header">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <span style="background: #00b894; color: white; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 13px;">{{ loop.index }}</span>
+                    <span style="font-weight: 600;">{{ term.name }}</span>
+                </div>
+                <div style="display: flex; gap: 6px;">
+                    <button type="button" class="editor-btn editor-btn-warning editor-btn-sm toggle-question" data-target="term-{{ t_idx }}">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width: 14px; height: 14px;">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                        </svg>
+                    </button>
+                    <form method="POST" onsubmit="return confirm('Удалить термин?')">
+                        <input type="hidden" name="action" value="delete_term">
+                        <input type="hidden" name="term_index" value="{{ t_idx }}">
+                        <button type="submit" class="editor-btn editor-btn-danger editor-btn-sm">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                            </svg>
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <div id="term-{{ t_idx }}" style="display: none;">
+                <form method="POST">
+                    <input type="hidden" name="action" value="save_term">
+                    <input type="hidden" name="term_index" value="{{ t_idx }}">
+                    <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 10px; margin-bottom: 12px;">
+                        <div>
+                            <label class="editor-label">Название термина</label>
+                            <input type="text" name="term_name" value="{{ term.name }}" class="editor-input">
+                        </div>
+                        <div>
+                            <label class="editor-label">Правильное определение</label>
+                            <textarea name="term_definition" class="editor-textarea" style="min-height: 40px;">{{ term.correct_definition }}</textarea>
+                        </div>
+                    </div>
+                    <button type="submit" class="editor-btn editor-btn-success editor-btn-sm">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                        </svg>
+                        Сохранить термин
+                    </button>
+                </form>
+            </div>
+        </div>
+        {% endfor %}
+
+        {% if station.definitions %}
+        <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid rgba(0,217,255,0.1);">
+            <label class="editor-label">Варианты определений (перемешиваются для пазла)</label>
+            <p style="color:#aaa;font-size:12px;margin-bottom:8px;">Эти определения отображаются в выпадающем списке. Обновляются автоматически при сохранении термина.</p>
+            <ul style="list-style: none; padding: 0;">
+                {% for def in station.definitions %}
+                <li style="padding: 8px 12px; background: #0f3460; border-radius: 6px; margin-bottom: 5px; font-size: 13px; color: #ddd;">
+                    {{ def }}
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.toggle-question').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            var target = document.getElementById(this.dataset.target);
+            if (target) {
+                target.style.display = target.style.display === 'none' ? 'block' : 'none';
+            }
+        });
+    });
+
+    document.querySelectorAll('.q-type-select').forEach(function(select) {
+        select.addEventListener('change', function() {
+            var targetId = this.dataset.target;
+            var target = document.getElementById(targetId);
+            if (target) {
+                var isChoice = this.value === 'choice';
+                if (isChoice) {
+                    target.innerHTML = '<label class="editor-label">Варианты ответа</label><p style="color:#aaa;font-size:12px;margin-bottom:8px;">Отметьте правильный вариант</p><div class="editor-option-row"><input type="text" name="option_0" value="Вариант 1" class="editor-input"><input type="radio" name="correct_option" value="option_0" checked></div><div class="editor-option-row"><input type="text" name="option_1" value="Вариант 2" class="editor-input"><input type="radio" name="correct_option" value="option_1"></div><input type="hidden" name="options_count" value="2">';
+                } else {
+                    target.innerHTML = '<label class="editor-label">Ключевые слова (через запятую)</label><p style="color:#aaa;font-size:12px;margin-bottom:8px;">Ответ считается правильным, если содержит хотя бы одно из этих слов</p><input type="text" name="keywords" value="ключевое_слово" class="editor-input">';
+                }
+            }
+        });
+    });
+});
+</script>
 {% endblock %}

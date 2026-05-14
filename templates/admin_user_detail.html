@@ -72,28 +72,24 @@
             {% for station in stations_progress %}
             <div style="background: {% if station.is_completed %}#00b894{% elif station.id <= target_user.current_station %}#00d9ff{% else %}#1a1a2e{% endif %}; padding: 15px; border-radius: 10px; display: flex; align-items: center; gap: 12px;">
                 {% if station.is_completed %}
-                <!-- Иконка: Пройдена -->
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width: 24px; height: 24px; color: white;">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
                 </svg>
                 {% elif station.id <= target_user.current_station %}
-                <!-- Иконка: В процессе -->
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width: 24px; height: 24px; color: white;">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
                 </svg>
                 {% else %}
-                <!-- Иконка: Заблокирована -->
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width: 24px; height: 24px; color: #666;">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
                 </svg>
                 {% endif %}
-                <div>
+                <div style="flex: 1;">
                     <div style="font-weight: bold; color: {% if station.is_completed or station.id <= target_user.current_station %}white{% else %}#666{% endif %};">
                         {{ station.title }}
                     </div>
                     <div style="font-size: 13px; color: {% if station.is_completed %}#e0f7fa{% elif station.id <= target_user.current_station %}#e0f7fa{% else %}#444{% endif %};">
                         {% if station.is_completed %}
-                        <!-- Текст: Пройдена -->
                         <span style="display: inline-flex; align-items: center; gap: 4px;">
                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width: 14px; height: 14px;">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
@@ -101,31 +97,31 @@
                             Пройдена
                         </span>
                         {% elif station.id < target_user.current_station %}
-                        <!-- Текст: Пройдена (ранее) -->
                         <span style="display: inline-flex; align-items: center; gap: 4px;">
                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width: 14px; height: 14px;">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
                             </svg>
                             Пройдена
                         </span>
-                        {% elif station.id == target_user.current_station %}
-                        <!-- Текст: В процессе -->
+                        {% elif station.id %}
                         <span style="display: inline-flex; align-items: center; gap: 4px;">
                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width: 14px; height: 14px;">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
                             </svg>
                             В процессе
                         </span>
-                        {% else %}
-                        <!-- Текст: Заблокирована -->
-                        <span style="display: inline-flex; align-items: center; gap: 4px;">
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width: 14px; height: 14px;">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
-                            </svg>
-                            Заблокирована
-                        </span>
                         {% endif %}
                     </div>
+                    {% if not station.is_completed %}
+                    <form method="POST" action="{{ url_for('admin_force_complete', user_id=target_user.id, station_num=station.id) }}" style="margin-top: 8px;">
+                        <button type="submit" class="editor-btn editor-btn-primary editor-btn-sm" onclick="return confirm('Принудительно пройти станцию {{ station.id }}?')">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width: 12px; height: 12px;">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                            </svg>
+                            Пройти
+                        </button>
+                    </form>
+                    {% endif %}
                 </div>
             </div>
             {% endfor %}

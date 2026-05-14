@@ -6,7 +6,6 @@
 <div class="card" style="text-align: center; padding: 50px;">
     <h1 style="font-size: 48px; margin-bottom: 20px;">Игра завершена!</h1>
     
-    
     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin: 30px 0; text-align: left;">
         <div style="background: #0f3460; padding: 20px; border-radius: 10px;">
             <h3 style="margin-top: 0; color: #00d9ff;">Игрок</h3>
@@ -19,8 +18,54 @@
             <p><strong>Станций пройдено:</strong> 6 из 6</p>
         </div>
     </div>
-    
-    <div style="margin-top: 40px;">
+
+    <!-- LEAD FORM -->
+    <div id="leadForm" style="background: linear-gradient(135deg, #0f3460, #1a1a2e); padding: 30px; border-radius: 15px; margin: 30px 0; text-align: left; position: relative; border: 2px solid rgba(0,217,255,0.2);">
+        <button type="button" onclick="document.getElementById('leadForm').style.display='none'" style="position: absolute; top: 12px; right: 12px; background: none; border: none; color: #aaa; cursor: pointer; padding: 5px;">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width: 24px; height: 24px;">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+        </button>
+        
+        <h3 style="color: #00d9ff; margin-top: 0; margin-bottom: 20px; text-align: center; font-size: 22px;">
+            Оставьте контактные данные
+        </h3>
+        <p style="color: #aaa; text-align: center; margin-bottom: 25px;">
+            Хотите узнать больше о поступлении в наш университет? Оставьте заявку, и мы свяжемся с вами!
+        </p>
+        
+        <form method="POST" action="{{ url_for('submit_lead') }}" onsubmit="return validateLeadForm()">
+            <div style="margin-bottom: 15px;">
+                <label style="color: #ddd; display: block; margin-bottom: 5px; font-weight: 500;">ФИО</label>
+                <input type="text" name="full_name" id="leadName" required placeholder="Иванов Иван Иванович" style="width: 100%; padding: 12px 15px; border-radius: 8px; border: 2px solid rgba(0,217,255,0.2); background: #1a1a2e; color: white; font-size: 15px; box-sizing: border-box;">
+            </div>
+            
+            <div style="margin-bottom: 15px;">
+                <label style="color: #ddd; display: block; margin-bottom: 5px; font-weight: 500;">Номер телефона</label>
+                <input type="tel" name="phone" id="leadPhone" required placeholder="+7 (999) 123-45-67" maxlength="18" style="width: 100%; padding: 12px 15px; border-radius: 8px; border: 2px solid rgba(0,217,255,0.2); background: #1a1a2e; color: white; font-size: 15px; box-sizing: border-box;">
+                <div id="phoneError" style="color: #e94560; font-size: 13px; margin-top: 5px; display: none;"></div>
+            </div>
+            
+            <div style="margin-bottom: 20px;">
+                <label style="display: flex; align-items: flex-start; gap: 10px; cursor: pointer; padding: 12px; background: rgba(0,217,255,0.05); border-radius: 8px;">
+                    <input type="checkbox" name="consent" id="leadConsent" required style="margin-top: 3px; width: 18px; height: 18px; accent-color: #00d9ff; flex-shrink: 0;">
+                    <span style="font-size: 13px; color: #aaa; line-height: 1.4;">
+                        Я даю согласие на обработку моих персональных данных в соответствии с 
+                        <a href="#" onclick="alert('Нажимая эту кнопку, вы даете согласие на обработку персональных данных согласно Федеральному закону № 152-ФЗ \"О персональных данных\". Ваши данные (ФИО и номер телефона) используются исключительно для связи с вами по вопросам поступления и не передаются третьим лицам.'); return false;" style="color: #00d9ff;">Федеральным законом № 152-ФЗ "О персональных данных"</a>
+                    </span>
+                </label>
+            </div>
+            
+            <button type="submit" style="width: 100%; padding: 14px; background: linear-gradient(135deg, #00d9ff, #00b8d4); color: #1a1a2e; border: none; border-radius: 8px; font-size: 16px; font-weight: 700; cursor: pointer; transition: all 0.3s; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width: 20px; height: 20px;">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>
+                </svg>
+                Отправить заявку
+            </button>
+        </form>
+    </div>
+
+    <div style="margin-top: 30px;">
         <form method="POST" action="/reset" style="display: inline-block; margin: 10px;">
             <button type="submit" class="btn btn-primary" style="font-size: 18px; padding: 15px 40px;">
                 Пройти заново
@@ -54,4 +99,69 @@
         Вернуться на главную
     </a>
 </div>
+
+<script>
+function validateLeadForm() {
+    var phoneInput = document.getElementById('leadPhone');
+    var phoneError = document.getElementById('phoneError');
+    var digits = phoneInput.value.replace(/\D/g, '');
+    
+    if (digits.length < 10 || digits.length > 11) {
+        phoneError.textContent = 'Номер телефона должен содержать 10-11 цифр (например, 89991234567)';
+        phoneError.style.display = 'block';
+        phoneInput.style.borderColor = '#e94560';
+        return false;
+    }
+    
+    phoneError.style.display = 'none';
+    phoneInput.style.borderColor = 'rgba(0,217,255,0.2)';
+    return true;
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    var phoneInput = document.getElementById('leadPhone');
+    
+    phoneInput.addEventListener('input', function(e) {
+        var value = this.value.replace(/[^\d+\(\)\-\s]/g, '');
+        var digits = value.replace(/\D/g, '');
+        
+        if (digits.length > 11) {
+            digits = digits.slice(0, 11);
+        }
+        
+        if (digits.length === 0) {
+            this.value = '';
+            return;
+        }
+        
+        var formatted = '';
+        if (digits.length > 0) {
+            formatted = '+7';
+            if (digits.length > 1) {
+                formatted += ' (' + digits.slice(1, 4);
+            }
+            if (digits.length >= 5) {
+                formatted += ') ' + digits.slice(4, 7);
+            }
+            if (digits.length >= 8) {
+                formatted += '-' + digits.slice(7, 9);
+            }
+            if (digits.length >= 10) {
+                formatted += '-' + digits.slice(9, 11);
+            }
+        }
+        this.value = formatted;
+        
+        var err = document.getElementById('phoneError');
+        if (digits.length > 0 && (digits.length < 10 || digits.length > 11)) {
+            err.textContent = 'Номер должен содержать 10-11 цифр';
+            err.style.display = 'block';
+            this.style.borderColor = '#e94560';
+        } else {
+            err.style.display = 'none';
+            this.style.borderColor = 'rgba(0,217,255,0.2)';
+        }
+    });
+});
+</script>
 {% endblock %}

@@ -919,3 +919,42 @@ body {
         justify-content: center;
     }
 }
+
+/* ============================================
+   ADMIN STATION EDITOR
+   ============================================ */
+.editor-card { background: #0f3460; border-radius: 12px; padding: 25px; margin-bottom: 20px; border-left: 4px solid #00d9ff; }
+.editor-card.danger { border-left-color: #e94560; }
+.editor-card.success { border-left-color: #00b894; }
+.editor-card.warning { border-left-color: #fdcb6e; }
+.editor-input { width: 100%; padding: 10px 14px; background: #1a1a2e; border: 2px solid rgba(0,217,255,0.2); border-radius: 8px; color: white; font-size: 14px; transition: all 0.3s; box-sizing: border-box; }
+.editor-input:focus { outline: none; border-color: #00d9ff; box-shadow: 0 0 0 3px rgba(0,217,255,0.1); }
+.editor-textarea { width: 100%; padding: 10px 14px; background: #1a1a2e; border: 2px solid rgba(0,217,255,0.2); border-radius: 8px; color: white; font-size: 14px; min-height: 80px; resize: vertical; box-sizing: border-box; }
+.editor-textarea:focus { outline: none; border-color: #00d9ff; }
+.editor-label { display: block; margin-bottom: 6px; color: #00d9ff; font-weight: 600; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; }
+.editor-btn { display: inline-flex; align-items: center; gap: 8px; padding: 10px 20px; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.3s; text-decoration: none; }
+.editor-btn svg { width: 18px; height: 18px; flex-shrink: 0; }
+.editor-btn-primary { background: linear-gradient(135deg,#00d9ff,#00b8d4); color: #1a1a2e; }
+.editor-btn-primary:hover { transform: translateY(-2px); box-shadow: 0 4px 15px rgba(0,217,255,0.3); }
+.editor-btn-success { background: linear-gradient(135deg,#00b894,#00cec9); color: white; }
+.editor-btn-success:hover { transform: translateY(-2px); }
+.editor-btn-danger { background: linear-gradient(135deg,#e94560,#ff6b6b); color: white; }
+.editor-btn-danger:hover { transform: translateY(-2px); }
+.editor-btn-warning { background: linear-gradient(135deg,#fdcb6e,#f39c12); color: #1a1a2e; }
+.editor-btn-warning:hover { transform: translateY(-2px); }
+.editor-btn-outline { background: transparent; border: 2px solid #00d9ff; color: #00d9ff; }
+.editor-btn-outline:hover { background: #00d9ff; color: #1a1a2e; transform: translateY(-2px); }
+.editor-btn-sm { padding: 6px 12px; font-size: 12px; }
+.editor-btn-sm svg { width: 14px; height: 14px; }
+.editor-question { background: #1a1a2e; border-radius: 10px; padding: 20px; margin-bottom: 15px; border: 1px solid rgba(0,217,255,0.1); }
+.editor-question-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; padding-bottom: 10px; border-bottom: 1px solid rgba(0,217,255,0.1); flex-wrap: wrap; gap: 10px; }
+.editor-option-row { display: flex; align-items: center; gap: 12px; padding: 10px 14px; background: #0f3460; border-radius: 8px; margin-bottom: 8px; }
+.editor-option-row input[type="text"] { flex: 1; }
+.editor-option-row input[type="checkbox"], .editor-option-row input[type="radio"] { width: 18px; height: 18px; accent-color: #00d9ff; cursor: pointer; flex-shrink: 0; }
+.editor-badge { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+.editor-badge-info { background: rgba(0,217,255,0.2); color: #00d9ff; }
+.editor-badge-success { background: rgba(0,184,148,0.2); color: #00b894; }
+.editor-round { background: #1a1a2e; border-radius: 10px; padding: 20px; margin-bottom: 15px; border: 1px solid rgba(253,203,110,0.2); }
+.editor-round-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; padding-bottom: 10px; border-bottom: 1px solid rgba(253,203,110,0.2); flex-wrap: wrap; gap: 10px; }
+.empty-state { text-align: center; padding: 40px 20px; color: #aaa; }
+.empty-state svg { width: 48px; height: 48px; margin-bottom: 15px; opacity: 0.5; }

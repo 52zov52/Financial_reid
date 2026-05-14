@@ -9,12 +9,33 @@ from datetime import datetime
 import csv
 import io
 from functools import wraps
+from cryptography.fernet import Fernet
+import base64
+import hashlib
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = '840392751093847562910384756291038475629103847562917'
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 print("🔑 [CONFIG] SECRET_KEY configured successfully")
+
+# ==================== ШИФРОВАНИЕ ПЕРСОНАЛЬНЫХ ДАННЫХ (152-ФЗ) ====================
+def get_fernet():
+    key = base64.urlsafe_b64encode(hashlib.sha256(app.config['SECRET_KEY'].encode()).digest())
+    return Fernet(key)
+
+def encrypt_data(text):
+    if not text:
+        return None
+    f = get_fernet()
+    return f.encrypt(text.encode()).decode()
+
+def decrypt_data(encrypted_text):
+    if not encrypted_text:
+        return ''
+    f = get_fernet()
+    return f.decrypt(encrypted_text.encode()).decode()
+
 db = SQLAlchemy(app)
 
 # ==================== НАСТРОЙКИ БЕЗОПАСНОСТИ ====================
@@ -46,6 +67,26 @@ class User(db.Model):
     def check_password(self, password):
         return check_password_hash(self.password_hash, password)
 
+class Lead(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    full_name_enc = db.Column(db.String(500), nullable=True)
+    phone_enc = db.Column(db.String(500), nullable=True)
+    consent = db.Column(db.Boolean, default=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
+    
+    def set_full_name(self, name):
+        self.full_name_enc = encrypt_data(name)
+    
+    def get_full_name(self):
+        return decrypt_data(self.full_name_enc)
+    
+    def set_phone(self, phone):
+        self.phone_enc = encrypt_data(phone)
+    
+    def get_phone(self):
+        return decrypt_data(self.phone_enc)
+
 # ==================== ДЕКОРАТОРЫ ====================
 def login_required(f):
     @wraps(f)
@@ -72,7 +113,7 @@ def admin_required(f):
             return redirect(url_for('login'))
         
         user = User.query.get(session['user_id'])
-        if not user or user.username.lower() not in ['admin', 'админ']:
+        if not user or not user.is_admin:
             flash('У вас нет доступа к админ-панели', 'error')
             return redirect(url_for('profile'))
         
@@ -134,6 +175,7 @@ def quick_start():
             # Если обычный пользователь — просто входим в систему
             session['user_id'] = user.id
             session['username'] = user.username
+            session['is_admin'] = user.is_admin
             print(f"✅ [DEBUG] User logged in: {user.username}")
             flash(f'С возвращением, {user.username}!', 'success')
             return redirect(url_for('dashboard'))
@@ -154,6 +196,7 @@ def quick_start():
         
         session['user_id'] = user.id
         session['username'] = user.username
+        session['is_admin'] = user.is_admin
         
         flash(f'Добро пожаловать, {user.username}!', 'success')
         print(f"✅ [DEBUG] Redirecting to dashboard...")
@@ -177,14 +220,12 @@ def admin_auth():
     username = request.form.get('username', '').strip()
     password = request.form.get('password', '')
     
-    user = User.query.filter(
-        User.username.in_(['admin', 'админ']),
-        User.username.ilike(username)
-    ).first()
+    user = User.query.filter_by(username=username).first()
     
-    if user and user.check_password(password):
+    if user and user.is_admin and user.check_password(password):
         session['user_id'] = user.id
         session['username'] = user.username
+        session['is_admin'] = user.is_admin
         user.last_login = datetime.utcnow()
         db.session.commit()
         flash(f'С возвращением, {user.username}!', 'success')
@@ -263,6 +304,7 @@ def login():
         if user and user.check_password(password):
             session['user_id'] = user.id
             session['username'] = user.username
+            session['is_admin'] = user.is_admin
             user.last_login = datetime.utcnow()
             db.session.commit()
             flash(f'С возвращением, {user.username}!', 'success')
@@ -292,52 +334,60 @@ def dashboard(user):
                     is_completed = True
         elif i == 2:
             completed_count = 0
-            for q in range(6):
+            questions = station_data.get('questions', [])
+            for q in range(len(questions)):
                 if f"{station_key}_q{q}" in answers:
                     if answers[f"{station_key}_q{q}"].get('is_correct', False):
                         completed_count += 1
-            if completed_count == 6:
+            if completed_count == len(questions) and len(questions) > 0:
                 is_completed = True
         elif i == 3:
             correct_count = 0
-            for round_idx in range(3):
-                round_questions = 7 if round_idx == 0 else 3
-                for q_idx in range(round_questions):
+            total_questions = 0
+            rounds = station_data.get('rounds', [])
+            for round_idx, round_data in enumerate(rounds):
+                questions = round_data.get('questions', [])
+                total_questions += len(questions)
+                for q_idx in range(len(questions)):
                     key = f"{station_key}_r{round_idx}_q{q_idx}"
                     if key in answers and answers[key].get('is_correct', False):
                         correct_count += 1
-            if correct_count == 13:
+            if correct_count == total_questions and total_questions > 0:
                 is_completed = True
         elif i == 4:
+            questions = station_data.get('questions', [])
             if f"{station_key}_progress" in answers:
-                if answers[f"{station_key}_progress"] >= 3:
+                if answers[f"{station_key}_progress"] >= len(questions):
                     correct_count = 0
-                    for q in range(3):
+                    for q in range(len(questions)):
                         if f"{station_key}_q{q}" in answers:
                             if answers[f"{station_key}_q{q}"].get('is_correct', False):
                                 correct_count += 1
-                    if correct_count == 3:
+                    if correct_count == len(questions):
                         is_completed = True
         elif i == 5:
             if f"{station_key}_completed" in answers and answers[f"{station_key}_completed"] == True:
                 is_completed = True
-            elif all(f"{station_key}_{tid}" in answers for tid in ['osago', 'iszh', 'property', 'accident', 'dms']):
-                correct_count = 0
+            else:
                 terms = station_data.get('terms', [])
-                for term in terms:
-                    key = f"{station_key}_{term['id']}"
-                    if key in answers and answers[key] == term['correct_definition']:
-                        correct_count += 1
-                if correct_count == len(terms):
-                    is_completed = True
+                term_ids = [t['id'] for t in terms]
+                if all(f"{station_key}_{tid}" in answers for tid in term_ids):
+                    correct_count = 0
+                    for term in terms:
+                        key = f"{station_key}_{term['id']}"
+                        if key in answers and answers[key] == term['correct_definition']:
+                            correct_count += 1
+                    if correct_count == len(terms):
+                        is_completed = True
         elif i == 6:
             correct_count = 0
-            for q in range(12):
+            questions = station_data.get('questions', [])
+            for q in range(len(questions)):
                 key = f"{station_key}_q{q}"
                 if key in answers:
                     if answers[key].get('is_correct', False):
                         correct_count += 1
-            if correct_count == 12:
+            if correct_count == len(questions):
                 is_completed = True
         
         if is_completed:
@@ -369,33 +419,36 @@ def access_station(user, station_num):
     
     # ==================== СБРОС ПРОГРЕССА ПРИ ПОВТОРНОМ ПРОХОЖДЕНИИ ====================
     station_key = f"station_{station_num}"
+    station_data = content.get(station_key, {})
     
     if station_num == 2:
-        # Проверяем, пройдена ли станция 2 (все 6 вопросов правильные)
-        completed_count = sum(1 for q in range(6) 
-                            if f"{station_key}_q{q}" in answers 
+        questions = station_data.get('questions', [])
+        completed_count = sum(1 for q in range(len(questions))
+                            if f"{station_key}_q{q}" in answers
                             and answers[f"{station_key}_q{q}"].get('is_correct', False))
-        if completed_count == 6:
-            user.station_2_progress = 0  # Сбрасываем для повторного прохождения
+        if completed_count == len(questions) and len(questions) > 0:
+            user.station_2_progress = 0
     
     elif station_num == 3:
-        # Проверяем, пройдена ли станция 3 (все 13 вопросов правильные)
+        rounds = station_data.get('rounds', [])
         correct_count = 0
-        for round_idx in range(3):
-            round_questions = 7 if round_idx == 0 else 3
-            for q_idx in range(round_questions):
+        total_questions = 0
+        for round_idx, round_data in enumerate(rounds):
+            questions = round_data.get('questions', [])
+            total_questions += len(questions)
+            for q_idx in range(len(questions)):
                 key = f"{station_key}_r{round_idx}_q{q_idx}"
                 if key in answers and answers[key].get('is_correct', False):
                     correct_count += 1
-        if correct_count == 13:
+        if correct_count == total_questions and total_questions > 0:
             user.station_3_progress = json.dumps({'round': 0, 'question': 0})
     
     # ==================== ПРОВЕРКА ДОСТУПА К СТАНЦИИ ====================
     prev_station = f"station_{station_num - 1}"
+    prev_data = content.get(prev_station, {})
     is_prev_completed = False
     
     if station_num == 1:
-        # Первая станция всегда доступна
         is_prev_completed = True
         
     elif station_num == 2:
@@ -405,69 +458,63 @@ def access_station(user, station_num):
                 is_prev_completed = True
                 
     elif station_num == 3:
+        questions = prev_data.get('questions', [])
         completed_count = 0
-        for q in range(6):
+        for q in range(len(questions)):
             if f"{prev_station}_q{q}" in answers:
                 if answers[f"{prev_station}_q{q}"].get('is_correct', False):
                     completed_count += 1
-        if completed_count == 6:
+        if completed_count == len(questions) and len(questions) > 0:
             is_prev_completed = True
             
     elif station_num == 4:
+        prev_rounds = prev_data.get('rounds', [])
         correct_count = 0
-        for q in range(7):
-            key = f"{prev_station}_r0_q{q}"
-            if key in answers and answers[key].get('is_correct', False):
-                correct_count += 1
-        for q in range(3):
-            key = f"{prev_station}_r1_q{q}"
-            if key in answers and answers[key].get('is_correct', False):
-                correct_count += 1
-        for q in range(3):
-            key = f"{prev_station}_r2_q{q}"
-            if key in answers and answers[key].get('is_correct', False):
-                correct_count += 1
-        if correct_count == 13:
+        total = 0
+        for round_idx, round_data in enumerate(prev_rounds):
+            questions = round_data.get('questions', [])
+            total += len(questions)
+            for q_idx in range(len(questions)):
+                key = f"{prev_station}_r{round_idx}_q{q_idx}"
+                if key in answers and answers[key].get('is_correct', False):
+                    correct_count += 1
+        if correct_count == total and total > 0:
             is_prev_completed = True
             
     elif station_num == 5:
-        # Проверка через флаг completed
         if f"{prev_station}_completed" in answers and answers[f"{prev_station}_completed"] == True:
             is_prev_completed = True
-        # Или проверка через все термины
-        elif all(f"{prev_station}_{tid}" in answers for tid in ['osago', 'iszh', 'property', 'accident', 'dms']):
-            station_data = content.get(prev_station, {})
-            terms = station_data.get('terms', [])
-            correct_count = 0
-            for term in terms:
-                key = f"{prev_station}_{term['id']}"
-                if key in answers and answers[key] == term['correct_definition']:
-                    correct_count += 1
-            if correct_count == len(terms):
-                is_prev_completed = True
+        else:
+            terms = prev_data.get('terms', [])
+            term_ids = [t['id'] for t in terms]
+            if all(f"{prev_station}_{tid}" in answers for tid in term_ids):
+                correct_count = 0
+                for term in terms:
+                    key = f"{prev_station}_{term['id']}"
+                    if key in answers and answers[key] == term['correct_definition']:
+                        correct_count += 1
+                if correct_count == len(terms):
+                    is_prev_completed = True
                 
     elif station_num == 6:
-        # Проверка через флаг completed
         if f"{prev_station}_completed" in answers and answers[f"{prev_station}_completed"] == True:
             is_prev_completed = True
-        # Или проверка через все термины
-        elif all(f"{prev_station}_{tid}" in answers for tid in ['osago', 'iszh', 'property', 'accident', 'dms']):
-            station_data = content.get(prev_station, {})
-            terms = station_data.get('terms', [])
-            correct_count = 0
-            for term in terms:
-                key = f"{prev_station}_{term['id']}"
-                if key in answers and answers[key] == term['correct_definition']:
-                    correct_count += 1
-            if correct_count == len(terms):
-                is_prev_completed = True
+        else:
+            terms = prev_data.get('terms', [])
+            term_ids = [t['id'] for t in terms]
+            if all(f"{prev_station}_{tid}" in answers for tid in term_ids):
+                correct_count = 0
+                for term in terms:
+                    key = f"{prev_station}_{term['id']}"
+                    if key in answers and answers[key] == term['correct_definition']:
+                        correct_count += 1
+                if correct_count == len(terms):
+                    is_prev_completed = True
     
-    # Если предыдущая станция не пройдена — блокируем доступ
     if not is_prev_completed:
         flash(f'Сначала пройдите Станцию {station_num - 1} полностью', 'warning')
         return redirect(url_for('dashboard'))
     
-    # Устанавливаем текущую станцию и сохраняем
     user.current_station = station_num
     db.session.commit()
     
@@ -790,7 +837,7 @@ def station(user):
                 }
             
             user.answers = json.dumps(answers_dict, ensure_ascii=False)
-            if correct_count == 12:
+            if correct_count == len(questions):
                 user.is_finished = True
             db.session.commit()
             return redirect(url_for('station_results', station_num=6))
@@ -981,6 +1028,7 @@ def admin_user_detail(user, user_id):
     stations_progress = []
     for i in range(1, 7):
         station_key = f"station_{i}"
+        station_data = content.get(station_key, {})
         is_completed = False
         
         if i == 1:
@@ -989,46 +1037,50 @@ def admin_user_detail(user, user_id):
                 if answer.get('total', 0) == 8000 and answer.get('savings', 0) >= 800:
                     is_completed = True
         elif i == 2:
-            completed_count = sum(1 for q in range(6) 
-                                if f"{station_key}_q{q}" in answers 
+            questions = station_data.get('questions', [])
+            completed_count = sum(1 for q in range(len(questions))
+                                if f"{station_key}_q{q}" in answers
                                 and answers[f"{station_key}_q{q}"].get('is_correct', False))
-            if completed_count == 6:
+            if completed_count == len(questions) and len(questions) > 0:
                 is_completed = True
         elif i == 3:
             correct_count = 0
-            for round_idx in range(3):
-                round_questions = 7 if round_idx == 0 else 3
-                for q_idx in range(round_questions):
+            total_questions = 0
+            rounds = station_data.get('rounds', [])
+            for round_idx, round_data in enumerate(rounds):
+                questions = round_data.get('questions', [])
+                total_questions += len(questions)
+                for q_idx in range(len(questions)):
                     key = f"{station_key}_r{round_idx}_q{q_idx}"
                     if key in answers and answers[key].get('is_correct', False):
                         correct_count += 1
-            if correct_count == 13:
+            if correct_count == total_questions and total_questions > 0:
                 is_completed = True
         elif i == 4:
-            if f"{station_key}_progress" in answers and answers[f"{station_key}_progress"] >= 3:
-                correct_count = sum(1 for q in range(3) 
-                                  if f"{station_key}_q{q}" in answers 
+            questions = station_data.get('questions', [])
+            if f"{station_key}_progress" in answers and answers[f"{station_key}_progress"] >= len(questions):
+                correct_count = sum(1 for q in range(len(questions))
+                                  if f"{station_key}_q{q}" in answers
                                   and answers[f"{station_key}_q{q}"].get('is_correct', False))
-                if correct_count == 3:
+                if correct_count == len(questions):
                     is_completed = True
         elif i == 5:
             if answers.get(f"{station_key}_completed") == True:
                 is_completed = True
             else:
-                # Проверяем все термины без использования all() в шаблоне
-                terms_ids = ['osago', 'iszh', 'property', 'accident', 'dms']
-                if all(f"{station_key}_{tid}" in answers for tid in terms_ids):
-                    station_data = content.get(station_key, {})
-                    terms = station_data.get('terms', [])
-                    matched = sum(1 for t in terms 
+                terms = station_data.get('terms', [])
+                term_ids = [t['id'] for t in terms]
+                if all(f"{station_key}_{tid}" in answers for tid in term_ids):
+                    matched = sum(1 for t in terms
                                 if answers.get(f"{station_key}_{t['id']}") == t['correct_definition'])
                     if matched == len(terms):
                         is_completed = True
         elif i == 6:
-            correct_count = sum(1 for q in range(12) 
-                              if f"{station_key}_q{q}" in answers 
+            questions = station_data.get('questions', [])
+            correct_count = sum(1 for q in range(len(questions))
+                              if f"{station_key}_q{q}" in answers
                               and answers[f"{station_key}_q{q}"].get('is_correct', False))
-            if correct_count == 12:
+            if correct_count == len(questions):
                 is_completed = True
         
         stations_progress.append({
@@ -1086,8 +1138,8 @@ def admin_delete_user(user, user_id):
     if target_user.id == user.id:
         flash('Нельзя удалить самого себя!', 'error')
         return redirect(url_for('admin_users'))
-    if target_user.is_admin and not user.is_super_admin:
-        flash('У вас нет прав для удаления этого администратора', 'error')
+    if target_user.is_admin:
+        flash('Для удаления администратора используйте раздел управления администраторами', 'error')
         return redirect(url_for('admin_users'))
     username = target_user.username
     db.session.delete(target_user)
@@ -1109,6 +1161,7 @@ def admin_create_admin(user):
     if request.method == 'POST':
         username = request.form.get('username', '').strip()
         password = request.form.get('password', '')
+        role = request.form.get('role', 'junior')
         
         if not username or len(password) < 6:
             flash('Имя и пароль (мин. 6 символов) обязательны', 'error')
@@ -1118,14 +1171,20 @@ def admin_create_admin(user):
             flash('Пользователь с таким именем уже существует', 'error')
             return redirect(url_for('admin_create_admin'))
         
+        if role == 'senior' and not user.is_super_admin:
+            flash('Только старший администратор может создавать других старших администраторов', 'error')
+            return redirect(url_for('admin_create_admin'))
+        
         new_admin = User(username=username, group='Administrator')
         new_admin.set_password(password)
         new_admin.is_admin = True
+        new_admin.is_super_admin = (role == 'senior')
         new_admin.email_verified = True
         db.session.add(new_admin)
         db.session.commit()
         
-        flash(f'Администратор {username} создан', 'success')
+        role_name = 'старший' if role == 'senior' else 'младший'
+        flash(f'{role_name.capitalize()} администратор {username} создан', 'success')
         return redirect(url_for('admin_admins'))
     
     return render_template('admin_create_admin.html', current_user=user)
@@ -1138,13 +1197,15 @@ def admin_delete_admin(user, user_id):
         flash('Нельзя удалить самого себя!', 'error')
         return redirect(url_for('admin_admins'))
     if not user.is_super_admin:
-        flash('У вас нет прав для удаления администраторов', 'error')
+        flash('Только старший администратор может удалять администраторов', 'error')
+        return redirect(url_for('admin_admins'))
+    if target_user.is_super_admin:
+        flash('Нельзя удалить старшего администратора', 'error')
         return redirect(url_for('admin_admins'))
     username = target_user.username
-    target_user.is_admin = False
-    target_user.is_super_admin = False
+    db.session.delete(target_user)
     db.session.commit()
-    flash(f'Администратор {username} понижен до обычного пользователя', 'success')
+    flash(f'Администратор {username} удалён', 'success')
     return redirect(url_for('admin_admins'))
 
 # ==================== АДМИН-ПАНЕЛЬ: РЕДАКТОР СТАНЦИЙ ====================
@@ -1153,75 +1214,277 @@ def admin_delete_admin(user, user_id):
 @admin_required
 def admin_edit_stations(user):
     content = load_content()
-    stations = []
-    for i in range(1, 7):
-        key = f'station_{i}'
-        if key in content:
-            stations.append({'id': i, 'key': key, 'data': content[key]})
-    return render_template('admin_edit_stations.html', stations=stations, current_user=user)
+    stations_list = []
+    for key, data in content.items():
+        station_id = int(key.split('_')[1])
+        stations_list.append({
+            'key': key,
+            'id': station_id,
+            'data': data
+        })
+    stations_list.sort(key=lambda x: x['id'])
+    return render_template('admin_edit_stations.html', stations=stations_list, current_user=user)
+
 
 @app.route('/admin/edit_station/<station_key>', methods=['GET', 'POST'])
 @admin_required
 def admin_edit_station(user, station_key):
     content = load_content()
-    if station_key not in content:
+    station = content.get(station_key)
+    if not station:
         flash('Станция не найдена', 'error')
         return redirect(url_for('admin_edit_stations'))
-    
-    station_data = content[station_key]
-    
+
     if request.method == 'POST':
-        action = request.form.get('action')
-        
-        if action == 'update_description':
-            station_data['title'] = request.form.get('title', '')
-            station_data['description'] = request.form.get('description', '')
-            station_data['points'] = int(request.form.get('points', 0))
-        
-        elif action == 'add_question':
-            if 'questions' not in station_data:
-                station_data['questions'] = []
-            station_data['questions'].append({
-                'id': len(station_data['questions']) + 1,
-                'text': 'Новый вопрос',
-                'options': ['Вариант 1', 'Вариант 2'],
-                'correct_answers': ['Вариант 1'] if station_data.get('type') == 'choice_multiple' else [],
-                'max_selections': 1
-            })
-        
-        elif action == 'update_question':
-            q_idx = int(request.form.get('question_index', 0))
-            if 'questions' in station_data and q_idx < len(station_data['questions']):
-                station_data['questions'][q_idx]['text'] = request.form.get('question_text', '')
-                
-                # Обновляем варианты ответов
-                options = []
-                correct_answers = []
-                for i in range(int(request.form.get('options_count', 2))):
-                    opt = request.form.get(f'option_{i}', '')
-                    if opt:
-                        options.append(opt)
-                        if request.form.get(f'correct_{i}') == 'on':
-                            correct_answers.append(opt)
-                
-                station_data['questions'][q_idx]['options'] = options
-                station_data['questions'][q_idx]['correct_answers'] = correct_answers
-        
-        elif action == 'delete_question':
-            q_idx = int(request.form.get('question_index', 0))
-            if 'questions' in station_data and q_idx < len(station_data['questions']):
-                station_data['questions'].pop(q_idx)
-        
-        # Сохраняем изменения в content.json
+        action = request.form.get('action', '')
+
+        # ==================== ОБЩИЕ НАСТРОЙКИ СТАНЦИИ ====================
+        if action == 'save_settings':
+            station['title'] = request.form.get('title', '').strip()
+            station['description'] = request.form.get('description', '').strip()
+            if 'points' in station:
+                station['points'] = int(request.form.get('points', station.get('points', 0)))
+            if station.get('type') == 'budget':
+                station['min_savings'] = int(request.form.get('min_savings', station.get('min_savings', 800)))
+                station['max_income'] = int(request.form.get('max_income', station.get('max_income', 8000)))
+
+        # ==================== СТАНЦИИ С ВОПРОСАМИ (choice_multiple, scammer_quiz, text) ====================
+        elif station.get('type') in ('choice_multiple', 'scammer_quiz', 'text'):
+            if action == 'add_question':
+                if 'questions' not in station:
+                    station['questions'] = []
+                if station['type'] == 'text':
+                    station['questions'].append({
+                        'id': len(station['questions']) + 1,
+                        'text': 'Новый вопрос',
+                        'type': 'text',
+                        'keywords': ['ключевое_слово']
+                    })
+                else:
+                    station['questions'].append({
+                        'id': len(station['questions']) + 1,
+                        'text': 'Новый вопрос',
+                        'options': ['Вариант 1', 'Вариант 2'],
+                        'correct_answers': ['Вариант 1']
+                    })
+
+            elif action == 'save_question':
+                q_index = int(request.form.get('question_index'))
+                if q_index < len(station['questions']):
+                    question = station['questions'][q_index]
+                    question['text'] = request.form.get('question_text', '').strip()
+
+                    if station['type'] == 'text':
+                        q_type = request.form.get('question_type', 'text')
+                        question['type'] = q_type
+                        if q_type == 'text':
+                            keywords_raw = request.form.get('keywords', '')
+                            question['keywords'] = [k.strip() for k in keywords_raw.split(',') if k.strip()]
+                        elif q_type == 'choice':
+                            options = []
+                            opts_count = int(request.form.get('options_count', 0))
+                            for i in range(opts_count):
+                                opt = request.form.get(f'option_{i}', '').strip()
+                                if opt:
+                                    options.append(opt)
+                            question['options'] = options
+                            correct_opt = request.form.get('correct_option', '')
+                            if correct_opt and '_' in correct_opt:
+                                idx = int(correct_opt.split('_')[1])
+                                question['correct_answer'] = options[idx] if idx < len(options) else ''
+                            else:
+                                question['correct_answer'] = ''
+                            question['correct_answers'] = [question['correct_answer']] if question['correct_answer'] else []
+                    else:
+                        options = []
+                        correct_answers = []
+                        explanation = request.form.get('explanation', '').strip()
+                        opts_count = int(request.form.get('options_count', 0))
+                        for i in range(opts_count):
+                            opt = request.form.get(f'option_{i}', '').strip()
+                            if opt:
+                                options.append(opt)
+                                if station['type'] == 'choice_multiple':
+                                    if request.form.get(f'correct_{i}') == 'on':
+                                        correct_answers.append(opt)
+                                else:
+                                    if request.form.get(f'correct_{i}') == 'on':
+                                        correct_answers.append(opt)
+
+                        question['options'] = options
+
+                        if station['type'] == 'choice_multiple':
+                            question['correct_answers'] = correct_answers
+                            question['max_selections'] = max(1, len(correct_answers))
+                        elif station['type'] == 'scammer_quiz':
+                            correct_opt = request.form.get('correct_option', '')
+                            if correct_opt and '_' in correct_opt:
+                                idx = int(correct_opt.split('_')[1])
+                                question['correct_answer'] = options[idx] if idx < len(options) else ''
+                            else:
+                                question['correct_answer'] = ''
+                            question['correct_answers'] = [question['correct_answer']] if question['correct_answer'] else []
+                            if explanation:
+                                question['explanation'] = explanation
+
+            elif action == 'delete_question':
+                q_index = int(request.form.get('question_index'))
+                if q_index < len(station['questions']):
+                    station['questions'].pop(q_index)
+                    for i, q in enumerate(station['questions']):
+                        q['id'] = i + 1
+
+        # ==================== СТАНЦИЯ 3 QUIZ ====================
+        elif station.get('type') == 'quiz':
+            if action == 'add_round':
+                if 'rounds' not in station:
+                    station['rounds'] = []
+                station['rounds'].append({
+                    'id': len(station['rounds']) + 1,
+                    'name': f'Раунд {len(station["rounds"]) + 1}',
+                    'description': '',
+                    'questions': []
+                })
+
+            elif action == 'delete_round':
+                round_index = int(request.form.get('round_index'))
+                if round_index < len(station['rounds']):
+                    station['rounds'].pop(round_index)
+                    for i, r in enumerate(station['rounds']):
+                        r['id'] = i + 1
+
+            elif action == 'save_round':
+                round_index = int(request.form.get('round_index'))
+                if round_index < len(station['rounds']):
+                    station['rounds'][round_index]['name'] = request.form.get('round_name', '').strip()
+                    station['rounds'][round_index]['description'] = request.form.get('round_description', '').strip()
+
+            elif action == 'add_round_question':
+                round_index = int(request.form.get('round_index'))
+                if round_index < len(station['rounds']):
+                    round_data = station['rounds'][round_index]
+                    if round_data.get('id') == 3:
+                        round_data['questions'].append({
+                            'id': len(round_data['questions']) + 1,
+                            'text': 'Новый ребус',
+                            'image': '',
+                            'hint': '',
+                            'correct_answers': ['ответ']
+                        })
+                    else:
+                        round_data['questions'].append({
+                            'id': len(round_data['questions']) + 1,
+                            'text': 'Новый вопрос',
+                            'options': ['Вариант 1', 'Вариант 2'],
+                            'correct_answer': 'Вариант 1'
+                        })
+
+            elif action == 'save_round_question':
+                round_index = int(request.form.get('round_index'))
+                question_index = int(request.form.get('question_index'))
+                if round_index < len(station['rounds']):
+                    round_data = station['rounds'][round_index]
+                    if question_index < len(round_data['questions']):
+                        question = round_data['questions'][question_index]
+                        question['text'] = request.form.get('question_text', '').strip()
+                        if round_data.get('id') == 3:
+                            question['image'] = request.form.get('image', '').strip()
+                            question['hint'] = request.form.get('hint', '').strip()
+                            answers_raw = request.form.get('correct_answers', '')
+                            question['correct_answers'] = [a.strip() for a in answers_raw.split(',') if a.strip()]
+                        else:
+                            options = []
+                            opts_count = int(request.form.get('options_count', 0))
+                            for i in range(opts_count):
+                                opt = request.form.get(f'option_{i}', '').strip()
+                                if opt:
+                                    options.append(opt)
+                            question['options'] = options
+                            correct_opt = request.form.get('correct_option', '')
+                            if correct_opt and '_' in correct_opt:
+                                idx = int(correct_opt.split('_')[1])
+                                question['correct_answer'] = options[idx] if idx < len(options) else ''
+                            else:
+                                question['correct_answer'] = ''
+
+            elif action == 'delete_round_question':
+                round_index = int(request.form.get('round_index'))
+                question_index = int(request.form.get('question_index'))
+                if round_index < len(station['rounds']):
+                    round_data = station['rounds'][round_index]
+                    if question_index < len(round_data['questions']):
+                        round_data['questions'].pop(question_index)
+                        for i, q in enumerate(round_data['questions']):
+                            q['id'] = i + 1
+
+        # ==================== СТАНЦИЯ 5 MATCHING_PUZZLE ====================
+        elif station.get('type') == 'matching_puzzle':
+            if action == 'add_term':
+                if 'terms' not in station:
+                    station['terms'] = []
+                import secrets
+                new_id = secrets.token_hex(4)
+                station['terms'].append({
+                    'id': new_id,
+                    'name': 'Новый термин',
+                    'correct_definition': 'Новое определение'
+                })
+                if 'definitions' not in station:
+                    station['definitions'] = []
+                station['definitions'].append('Новое определение')
+
+            elif action == 'save_term':
+                term_index = int(request.form.get('term_index'))
+                if term_index < len(station['terms']):
+                    term = station['terms'][term_index]
+                    old_def = term.get('correct_definition', '')
+                    term['name'] = request.form.get('term_name', '').strip()
+                    term['correct_definition'] = request.form.get('term_definition', '').strip()
+                    new_def = term['correct_definition']
+                    if 'definitions' in station:
+                        for i, d in enumerate(station['definitions']):
+                            if d == old_def:
+                                station['definitions'][i] = new_def
+                                break
+
+            elif action == 'delete_term':
+                term_index = int(request.form.get('term_index'))
+                if term_index < len(station['terms']):
+                    term = station['terms'].pop(term_index)
+                    if 'definitions' in station and term.get('correct_definition') in station['definitions']:
+                        station['definitions'].remove(term['correct_definition'])
+
+        # ==================== СТАНЦИЯ 1 BUDGET: ПОЛЯ ====================
+        elif station.get('type') == 'budget':
+            if action == 'add_field':
+                if 'fields' not in station:
+                    station['fields'] = []
+                station['fields'].append({
+                    'name': f'field_{len(station["fields"]) + 1}',
+                    'label': 'Новое поле'
+                })
+            elif action == 'save_field':
+                field_index = int(request.form.get('field_index'))
+                if field_index < len(station['fields']):
+                    station['fields'][field_index]['name'] = request.form.get('field_name', '').strip()
+                    station['fields'][field_index]['label'] = request.form.get('field_label', '').strip()
+                    station['fields'][field_index]['min'] = int(request.form.get('field_min', 0))
+                    station['fields'][field_index]['max'] = int(request.form.get('field_max', 8000))
+            elif action == 'delete_field':
+                field_index = int(request.form.get('field_index'))
+                if field_index < len(station['fields']):
+                    station['fields'].pop(field_index)
+
+        # Сохраняем content.json
         with open('content.json', 'w', encoding='utf-8') as f:
             json.dump(content, f, ensure_ascii=False, indent=2)
-        
+
         flash('Изменения сохранены', 'success')
         return redirect(url_for('admin_edit_station', station_key=station_key))
-    
-    return render_template('admin_edit_station.html', 
-                         station_key=station_key, 
-                         station_data=station_data,
+
+    return render_template('admin_edit_station.html',
+                         station_key=station_key,
+                         station=station,
                          current_user=user)
 
 # ==================== АДМИН-ПАНЕЛЬ: ЭКСПОРТ ====================
@@ -1260,8 +1523,8 @@ def admin_export_answers(user, user_id):
 @app.route('/admin/export')
 @admin_required
 def export_csv(user):
-    if user.username.lower() not in ['admin', 'админ']:
-        flash('У вас нет доступа', 'error')
+    if not user.is_super_admin:
+        flash('У вас нет доступа к экспорту', 'error')
         return redirect(url_for('profile'))
     
     users = User.query.all()
@@ -1285,6 +1548,179 @@ def export_csv(user):
         download_name='results.csv'
     )
 
+# ==================== АДМИН-ПАНЕЛЬ: ПРИНУДИТЕЛЬНОЕ ПРОХОЖДЕНИЕ СТАНЦИИ ====================
+
+@app.route('/admin/force_complete/<int:user_id>/<int:station_num>', methods=['POST'])
+@admin_required
+def admin_force_complete(user, user_id, station_num):
+    if station_num < 1 or station_num > 6:
+        flash('Неверный номер станции', 'error')
+        return redirect(url_for('admin_user_detail', user_id=user_id))
+    
+    target_user = User.query.get_or_404(user_id)
+    content = load_content()
+    station_key = f"station_{station_num}"
+    station_data = content.get(station_key, {})
+    answers = json.loads(target_user.answers) if target_user.answers else {}
+    
+    if station_num == 1:
+        answers[station_key] = {
+            'food': 2000, 'transport': 1000, 'phone': 500,
+            'entertainment': 1000, 'education': 2700, 'savings': 800,
+            'total': 8000
+        }
+    elif station_num == 2:
+        questions = station_data.get('questions', [])
+        for i, q in enumerate(questions):
+            answers[f"{station_key}_q{i}"] = {
+                'selected': q.get('correct_answers', []),
+                'correct': q.get('correct_answers', []),
+                'is_correct': True
+            }
+    elif station_num == 3:
+        rounds = station_data.get('rounds', [])
+        for ri, r in enumerate(rounds):
+            for qi, q in enumerate(r.get('questions', [])):
+                ans = q.get('correct_answer', '') or q.get('correct_answers', [''])[0]
+                answers[f"{station_key}_r{ri}_q{qi}"] = {
+                    'answer': ans,
+                    'is_correct': True
+                }
+        target_user.station_3_progress = json.dumps({'round': 0, 'question': 0})
+    elif station_num == 4:
+        questions = station_data.get('questions', [])
+        for i, q in enumerate(questions):
+            answers[f"{station_key}_q{i}"] = {
+                'selected': q.get('correct_answer', ''),
+                'correct': q.get('correct_answer', ''),
+                'is_correct': True
+            }
+        answers[f"{station_key}_progress"] = len(questions)
+        answers[f"{station_key}_completed"] = True
+    elif station_num == 5:
+        terms = station_data.get('terms', [])
+        for t in terms:
+            answers[f"{station_key}_{t['id']}"] = t['correct_definition']
+        answers[f"{station_key}_completed"] = True
+    elif station_num == 6:
+        questions = station_data.get('questions', [])
+        for i, q in enumerate(questions):
+            kw = q.get('keywords', ['правильно'])
+            answers[f"{station_key}_q{i}"] = {
+                'question': q['text'],
+                'answer': kw[0],
+                'is_correct': True
+            }
+        target_user.is_finished = True
+    
+    if station_num > target_user.current_station:
+        target_user.current_station = station_num
+    
+    target_user.answers = json.dumps(answers, ensure_ascii=False)
+    db.session.commit()
+    
+    flash(f'Станция {station_num} принудительно пройдена для {target_user.username}', 'success')
+    return redirect(url_for('admin_user_detail', user_id=user_id))
+
+
+# ==================== ФОРМА ЛИДОВ ====================
+
+@app.route('/submit_lead', methods=['POST'])
+@login_required
+def submit_lead(user):
+    if not user.is_finished:
+        flash('Форма доступна только после завершения игры', 'warning')
+        return redirect(url_for('dashboard'))
+    
+    full_name = request.form.get('full_name', '').strip()
+    phone = request.form.get('phone', '').strip()
+    consent = request.form.get('consent') == 'on'
+    
+    if not consent:
+        flash('Необходимо согласие на обработку персональных данных', 'error')
+        return redirect(url_for('result'))
+    
+    if not full_name or len(full_name) < 2:
+        flash('Введите ФИО', 'error')
+        return redirect(url_for('result'))
+    
+    if not phone:
+        flash('Введите номер телефона', 'error')
+        return redirect(url_for('result'))
+    
+    digits_only = ''.join(c for c in phone if c.isdigit())
+    if len(digits_only) > 11 or len(digits_only) < 10:
+        flash('Номер телефона должен содержать 10-11 цифр (с кодом страны)', 'error')
+        return redirect(url_for('result'))
+    
+    existing = Lead.query.filter_by(user_id=user.id).first()
+    if existing:
+        flash('Вы уже оставляли заявку', 'info')
+        return redirect(url_for('result'))
+    
+    lead = Lead(user_id=user.id)
+    lead.set_full_name(full_name)
+    lead.set_phone(digits_only)
+    lead.consent = True
+    db.session.add(lead)
+    db.session.commit()
+    
+    flash('Спасибо! Ваша заявка принята. Мы свяжемся с вами в ближайшее время.', 'success')
+    return redirect(url_for('profile'))
+
+
+# ==================== АДМИН-ПАНЕЛЬ: УПРАВЛЕНИЕ ЛИДАМИ ====================
+
+@app.route('/admin/leads')
+@admin_required
+def admin_leads(user):
+    leads = Lead.query.order_by(Lead.created_at.desc()).all()
+    decrypted = []
+    for lead in leads:
+        u = User.query.get(lead.user_id)
+        decrypted.append({
+            'id': lead.id,
+            'full_name': lead.get_full_name(),
+            'phone': lead.get_phone(),
+            'consent': lead.consent,
+            'created_at': lead.created_at,
+            'username': u.username if u else '—'
+        })
+    return render_template('admin_leads.html', leads=decrypted, current_user=user)
+
+
+@app.route('/admin/leads/export')
+@admin_required
+def admin_leads_export(user):
+    if not user.is_super_admin:
+        flash('Только старший администратор может экспортировать данные', 'error')
+        return redirect(url_for('admin_leads'))
+    
+    leads = Lead.query.order_by(Lead.created_at.desc()).all()
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(['ID', 'ФИО', 'Телефон', 'Согласие на обработку', 'Игрок', 'Дата создания'])
+    
+    for lead in leads:
+        u = User.query.get(lead.user_id)
+        writer.writerow([
+            lead.id,
+            lead.get_full_name(),
+            lead.get_phone(),
+            'Да' if lead.consent else 'Нет',
+            u.username if u else '—',
+            lead.created_at.strftime('%Y-%m-%d %H:%M') if lead.created_at else ''
+        ])
+    
+    output.seek(0)
+    return send_file(
+        io.BytesIO(output.getvalue().encode('utf-8-sig')),
+        mimetype='text/csv',
+        as_attachment=True,
+        download_name='leads.csv'
+    )
+
+
 def init_admin_account():
     """Автоматически создает администратора при первом запуске.
     Пароль берется из переменных окружения, чтобы не хранить его в коде."""
@@ -1302,18 +1738,26 @@ def init_admin_account():
                 print("   Установите переменную перед запуском.")
                 return
 
-            # Создаем администратора
+            # Создаем главного администратора
             new_admin = User(
                 username='admin',
                 email='admin@financial-raid.local',
                 group='Administrator'
             )
             new_admin.set_password(admin_password)
+            new_admin.is_admin = True
+            new_admin.is_super_admin = True
             new_admin.email_verified = True
             db.session.add(new_admin)
             db.session.commit()
-            print("✅ Аккаунт администратора 'admin' успешно создан!")
+            print("✅ Аккаунт главного администратора 'admin' успешно создан!")
         else:
+            # Миграция: обновляем флаги для существующих администраторов
+            if not existing_admin.is_admin:
+                existing_admin.is_admin = True
+                existing_admin.is_super_admin = True
+                db.session.commit()
+                print("✅ Флаги администратора обновлены")
             print("ℹ️ Аккаунт администратора уже существует.")
 
 # ==================== СБРОС КОНКРЕТНОЙ СТАНЦИИ ====================

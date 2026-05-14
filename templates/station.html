@@ -91,7 +91,7 @@
                             <span class="fieldValue" data-field="{{ field.name }}">0</span> ИК
                         </div>
                     </div>
-                    <input type="range" class="budgetSlider" name="{{ field.name }}" min="0" max="8000" value="0" step="100" data-field="{{ field.name }}">
+                    <input type="range" class="budgetSlider" name="{{ field.name }}" min="{{ field.min | default(0) }}" max="{{ field.max | default(8000) }}" value="0" step="100" data-field="{{ field.name }}" data-max="{{ field.max | default(8000) }}">
                     {% if field.label == 'Сбережения' %}
                     <div style="background: rgba(0,184,148,0.1); padding: 10px; border-radius: 5px; margin-top: 10px; font-size: 13px; color: #00b894;">Минимум 800 ИК (10% от дохода)</div>
                     {% endif %}
@@ -107,7 +107,7 @@
             {% if current_question %}
             <div style="background: #0f3460; padding: 20px; border-radius: 10px; margin-bottom: 20px;">
                 <div style="display: flex; justify-content: space-between; margin-bottom: 15px;">
-                    <span style="color: #00d9ff; font-weight: bold;">Вопрос {{ question_index + 1 }} из 6</span>
+                    <span style="color: #00d9ff; font-weight: bold;">Вопрос {{ question_index + 1 }} из {{ station.questions | length }}</span>
                     <span style="color: #fdcb6e; font-weight: bold;">Выберите все подходящие варианты</span>
                 </div>
                 <p style="font-size: 18px; margin-bottom: 25px;">{{ current_question.text }}</p>
@@ -199,22 +199,24 @@
         
         {% elif station.type == 'text' %}
             <div style="background: #0f3460; padding: 25px; border-radius: 15px;">
-                {% for i in range(11) %}
+                {% for question in station.questions %}
+                {% set q_idx = loop.index0 %}
                 <div style="background: #1a1a2e; padding: 20px; border-radius: 10px; margin-bottom: 20px;">
-                    <label style="display: block; margin-bottom: 10px; color: #eee; font-weight: 500;">Вопрос {{ i + 1 }}: {{ station.questions[i].text }}</label>
-                    <textarea name="question_{{ i }}" rows="3" required style="width: 100%; padding: 12px; border: 2px solid #0f3460; border-radius: 8px; background: #1a1a2e; color: white; font-size: 14px; resize: vertical;"></textarea>
+                    <label style="display: block; margin-bottom: 10px; color: #eee; font-weight: 500;">Вопрос {{ loop.index }}: {{ question.text }}</label>
+                    {% if question.type == 'choice' and question.options %}
+                    <div style="display: flex; flex-direction: column; gap: 10px;">
+                        {% for option in question.options %}
+                        <label style="display: flex; align-items: center; padding: 15px 20px; background: #0f3460; border-radius: 8px; cursor: pointer;">
+                            <input type="radio" name="question_{{ q_idx }}" value="{{ option }}" required style="margin-right: 15px; accent-color: #00d9ff; flex-shrink: 0; width: 20px; height: 20px;">
+                            <span style="flex: 1; line-height: 1.4;">{{ option }}</span>
+                        </label>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <textarea name="question_{{ q_idx }}" rows="3" required style="width: 100%; padding: 12px; border: 2px solid #0f3460; border-radius: 8px; background: #1a1a2e; color: white; font-size: 14px; resize: vertical;"></textarea>
+                    {% endif %}
                 </div>
                 {% endfor %}
-                
-                <div style="background: #1a1a2e; padding: 20px; border-radius: 10px; margin-bottom: 20px;">
-                    <label style="display: block; margin-bottom: 15px; color: #eee; font-weight: 500;">Вопрос 12: {{ station.questions[11].text }}</label>
-                    {% for option in station.questions[11].options %}
-                    <label style="display: flex; align-items: center; padding: 15px 20px; margin-bottom: 10px; background: #0f3460; border-radius: 8px; cursor: pointer;">
-                        <input type="radio" name="question_11" value="{{ option }}" required style="margin-right: 15px; accent-color: #00d9ff; flex-shrink: 0; width: 20px; height: 20px;">
-                        <span style="flex: 1; line-height: 1.4;">{{ option }}</span>
-                    </label>
-                    {% endfor %}
-                </div>
             </div>
         {% endif %}
         
@@ -267,20 +269,22 @@ document.addEventListener('DOMContentLoaded', function() {
         var sliders = document.querySelectorAll('.budgetSlider');
         var remainingAmount = document.getElementById('remainingAmount');
         var successMessage = document.getElementById('successMessage');
-        var MAX_INCOME = 8000;
-        var MIN_SAVINGS = 800;
+        var MAX_INCOME = {{ station.max_income | default(8000) }};
+        var MIN_SAVINGS = {{ station.min_savings | default(800) }};
         
         function updateBudget() {
             var total = 0;
             var savings = 0;
             
-            sliders.forEach(function(slider) {
-                var value = parseInt(slider.value) || 0;
-                total += value;
-                var display = slider.parentElement.querySelector('.fieldValue');
-                if (display) display.textContent = value;
-                if (slider.dataset.field === 'savings') savings = value;
-            });
+        sliders.forEach(function(slider) {
+            var value = parseInt(slider.value) || 0;
+            var fieldMax = parseInt(slider.dataset.max) || MAX_INCOME;
+            if (value > fieldMax) { slider.value = fieldMax; value = fieldMax; }
+            total += value;
+            var display = slider.parentElement.querySelector('.fieldValue');
+            if (display) display.textContent = value;
+            if (slider.dataset.field === 'savings') savings = value;
+        });
             
             var remaining = MAX_INCOME - total;
             remainingAmount.textContent = remaining;

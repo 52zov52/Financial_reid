@@ -20,6 +20,22 @@
             <input type="password" name="password" required minlength="6" style="width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #1a1a2e; background: #1a1a2e; color: white;">
         </div>
 
+        {% if current_user.is_super_admin %}
+        <div class="form-group">
+            <label style="color: #aaa; display: block; margin-bottom: 10px;">Роль</label>
+            <label style="display: inline-flex; align-items: center; gap: 8px; padding: 12px 20px; background: #1a1a2e; border-radius: 8px; cursor: pointer; margin-right: 10px;">
+                <input type="radio" name="role" value="junior" checked style="accent-color: #00d9ff; width: 18px; height: 18px;">
+                <span style="color: #00d9ff;">Младший</span>
+            </label>
+            <label style="display: inline-flex; align-items: center; gap: 8px; padding: 12px 20px; background: #1a1a2e; border-radius: 8px; cursor: pointer;">
+                <input type="radio" name="role" value="senior" style="accent-color: #fdcb6e; width: 18px; height: 18px;">
+                <span style="color: #fdcb6e;">Старший</span>
+            </label>
+        </div>
+        {% else %}
+        <input type="hidden" name="role" value="junior">
+        {% endif %}
+
         <button type="submit" style="background: #00b894; color: white; border: none; padding: 12px 30px; border-radius: 8px; cursor: pointer; font-weight: bold; width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px;">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width: 20px; height: 20px;">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
